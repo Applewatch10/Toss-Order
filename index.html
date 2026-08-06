@@ -1,0 +1,2385 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>토스 발주관리 시스템</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{
+      font-family:'Inter','Apple SD Gothic Neo','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;
+      background:#E8ECF2;
+      background-image:
+        radial-gradient(ellipse 80% 65% at 8% 30%, rgba(13,148,136,0.22) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 60% at 92% 15%, rgba(124,58,237,0.14) 0%, transparent 60%),
+        radial-gradient(ellipse 55% 55% at 55% 92%, rgba(99,102,241,0.12) 0%, transparent 60%);
+      background-attachment:fixed;
+      color:#0D0F1C;
+      -webkit-font-smoothing:antialiased;
+    }
+    ::-webkit-scrollbar{width:4px;height:4px;}
+    ::-webkit-scrollbar-track{background:transparent;}
+    ::-webkit-scrollbar-thumb{background:rgba(0,0,0,0.15);border-radius:10px;}
+    ::-webkit-scrollbar-thumb:hover{background:rgba(0,0,0,0.25);}
+    input,select,textarea,button{font-family:inherit;}
+    tbody tr:hover td{background:rgba(13,148,136,0.05)!important;}
+    @keyframes toastIn{from{opacity:0;transform:translateY(12px) scale(0.96);}to{opacity:1;transform:translateY(0) scale(1);}}
+
+    /* ── 글래스 공통 ── */
+    .glass{
+      background:rgba(255,255,255,0.72);
+      backdrop-filter:blur(20px) saturate(160%);
+      -webkit-backdrop-filter:blur(20px) saturate(160%);
+      border:1px solid rgba(255,255,255,0.55);
+    }
+
+    /* ── 반응형 레이아웃 ── */
+    .kpi-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-bottom:24px;}
+    .app-layout{display:flex;min-height:calc(100vh - 60px);}
+    .app-main{padding:24px clamp(16px,2.5vw,36px);flex:1;min-width:0;}
+    .hdr-inner{
+      background:rgba(7,7,12,0.80);
+      backdrop-filter:blur(24px) saturate(180%);
+      -webkit-backdrop-filter:blur(24px) saturate(180%);
+      border-bottom:1px solid rgba(255,255,255,0.06);
+      position:sticky;top:0;z-index:100;
+      display:flex;align-items:center;justify-content:space-between;
+      flex-wrap:wrap;padding:0 24px;min-height:60px;gap:8px;
+    }
+    .hdr-left{display:flex;align-items:center;gap:10px;flex:1;min-width:0;}
+    .hdr-right{display:flex;gap:5px;align-items:center;flex-shrink:0;padding:10px 0;}
+    .btn-lbl{}
+
+    /* ── 사이드바 ── */
+    .sidebar{
+      width:192px;flex-shrink:0;
+      background:rgba(7,7,12,0.78);
+      backdrop-filter:blur(24px) saturate(180%);
+      -webkit-backdrop-filter:blur(24px) saturate(180%);
+      border-right:1px solid rgba(255,255,255,0.06);
+      position:sticky;top:60px;height:calc(100vh - 60px);
+      overflow-y:auto;scrollbar-width:none;
+      padding:16px 10px;display:flex;flex-direction:column;gap:3px;
+    }
+    .sidebar::-webkit-scrollbar{display:none;}
+    .sidebar-label{font-size:10px;font-weight:600;color:rgba(255,255,255,0.25);letter-spacing:0.08em;text-transform:uppercase;padding:12px 10px 6px;}
+    .nav-item{
+      display:flex;align-items:center;gap:10px;
+      padding:10px 12px;border-radius:10px;cursor:pointer;border:none;
+      background:transparent;color:rgba(255,255,255,0.85);
+      font-size:13px;font-weight:500;text-align:left;width:100%;
+      transition:background 0.15s,color 0.15s;
+    }
+    .nav-item:hover{background:rgba(255,255,255,0.07);color:#fff;}
+    .nav-item.active{background:rgba(13,148,136,0.18);color:#5EEAD4;font-weight:600;}
+    .nav-icon{opacity:0.45;transition:opacity 0.15s;flex-shrink:0;}
+    .nav-item.active .nav-icon{opacity:1;}
+
+    @media(max-width:1100px){.kpi-row{grid-template-columns:repeat(2,minmax(0,1fr));}}
+    @media(max-width:820px){
+      .hdr-inner{padding:8px 16px;gap:6px;}
+      .hdr-right .btn-lbl{display:none;}
+      .hdr-right button{padding:7px 10px!important;}
+      .sidebar{width:56px;}
+      .sidebar-label,.nav-item span:last-child{display:none;}
+      .nav-item{justify-content:center;padding:12px;}
+    }
+    @media(max-width:640px){
+      .kpi-row{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:14px;}
+      .hdr-inner{padding:8px 12px;}
+      .hdr-right{padding:6px 0;}
+      .app-main{padding:14px 12px;}
+    }
+    @media(max-width:480px){.kpi-row{grid-template-columns:1fr 1fr;gap:8px;}}
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef, useMemo, useCallback } = React;
+
+/* ── 초기 데이터 ── */
+const INITIAL_DATA = [
+  {id:1,quoteDate:"2026-01-05",orderDate:"?",customer:"비바리퍼블리카(토스코어)",category:"Mac",mpn:"Z1FD0002L",itemName:"MBP 14 SL/M4 Max 16C CPU/40C GPU/64GB/1TB-KOR",qty:30,orderStatus:"14대 발주 취소",invoice:"14인치,13,15인치 25일 발행",notes:"16대 우선 납품 및 Macbook Air 13,15인치 15대씩 납품(2/25일)",deliveries:[{id:1,qty:16,date:"2026-02-25",status:"완료",note:""},{id:2,qty:14,date:"",status:"취소",note:"발주 취소"}]},
+  {id:2,quoteDate:"2026-02-02",orderDate:"2026-02-06",customer:"비바리퍼블리카(토스코어)",category:"Mac",mpn:"Z1CE000BD",itemName:"MAC STUDIO/32C CPU/80C GPU/96G/2TB-KOR",qty:8,orderStatus:"납품 가능",invoice:"3/12일 발행",notes:"",deliveries:[{id:1,qty:8,date:"2026-03-12",status:"완료",note:""}]},
+  {id:3,quoteDate:"2026-02-03",orderDate:"2026-02-04",customer:"파이인스티튜트오브디자인",category:"Mac",mpn:"Z1FF0003B",itemName:"MBP 14 SB/M4 Pro 14C CPU/20C GPU/48GB/1TB-KOR",qty:3,orderStatus:"1대 완료 / 2대 배정완",invoice:"1대 완 / 2대 3.3일 발행",notes:"",deliveries:[{id:1,qty:1,date:"2026-02-06",status:"완료",note:""},{id:2,qty:2,date:"2026-03-03",status:"완료",note:""}]},
+  {id:4,quoteDate:"2026-02-09",orderDate:"2026-02-10",customer:"토스증권",category:"DISP",mpn:"MYJK3KH/A",itemName:"STUDIO DISPLAY NANO/TILT/1M-KOR",qty:3,orderStatus:"발주 취소",invoice:"",notes:"",deliveries:[]},
+  {id:5,quoteDate:"2026-02-10",orderDate:"2026-02-10",customer:"파이인스티튜트오브디자인",category:"Mac",mpn:"Z1FF0003B",itemName:"MBP 14 SB/M4 Pro 14C CPU/20C GPU/48GB/1TB-KOR",qty:2,orderStatus:"발주 취소",invoice:"",notes:"",deliveries:[]},
+  {id:6,quoteDate:"2026-02-10",orderDate:"2026-02-10",customer:"비바리퍼블리카(토스코어)",category:"ACC",mpn:"MWU53FE/A 외",itemName:"Earpods (3.5mm Headphone Plug)",qty:170,orderStatus:"",invoice:"25일 발행",notes:"MWU53FE/A - 8개 페이스북 코리아 제품 사용, MXK73KH/A - 7개 재화창고 제품 사용",deliveries:[{id:1,qty:170,date:"2026-02-25",status:"완료",note:""}]},
+  {id:7,quoteDate:"2026-02-11",orderDate:"백록",customer:"토스증권",category:"Mac",mpn:"Z1FD0002L",itemName:"MBP 14 SL/M4 Max 16C CPU/40C GPU/64GB/1TB-KOR",qty:20,orderStatus:"발주 취소",invoice:"",notes:"",deliveries:[]},
+  {id:8,quoteDate:"2026-02-12",orderDate:"백록",customer:"토스인컴",category:"Mac",mpn:"MU9D3KH/A",itemName:"MAC MINI/M4 10C CPU/10C GPU/16GB/256GB-KOR",qty:1,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[{id:1,qty:1,date:"2026-04-14",status:"대기",note:""}]},
+  {id:9,quoteDate:"2026-02-20",orderDate:"재고 보유",customer:"토스페이먼츠",category:"ACC",mpn:"MXK73KH/A",itemName:"MAGIC KEYBOARD TOUCH ID Numeric Keypad-KOR White",qty:4,orderStatus:"납품 가능",invoice:"3/4일 발행",notes:"",deliveries:[{id:1,qty:4,date:"2026-03-04",status:"완료",note:""}]},
+  {id:10,quoteDate:"2026-03-09",orderDate:"2026-03-11",customer:"비바리퍼블리카(토스코어)",category:"Mac",mpn:"Z1MK000XH",itemName:"MBP 14 SL/M5 Max 18C CPU/40C GPU/64GB/2TB-KOR",qty:20,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
+  {id:11,quoteDate:"2026-03-09",orderDate:"2026-03-11",customer:"비바리퍼블리카(토스코어)",category:"Mac",mpn:"Z1MY0003H",itemName:"MBP 16 SL/M5 Max 18C CPU/40C GPU/64GB/2TB-KOR",qty:10,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
+  {id:12,quoteDate:"2026-03-09",orderDate:"백록",customer:"비바리퍼블리카(토스코어)",category:"Mac",mpn:"MU9D3KH/A",itemName:"MAC MINI/M4 10C CPU/10C GPU/16GB/256GB-KOR",qty:15,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[{id:1,qty:15,date:"2026-04-08",status:"대기",note:""}]},
+  {id:13,quoteDate:"2026-03-09",orderDate:"2026-02-23",customer:"비바리퍼블리카(토스코어)",category:"Mac",mpn:"Z1CF",itemName:"MAC MINI/M4 10C CPU/10C GPU/32GB/256GB-KOR",qty:5,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
+  {id:14,quoteDate:"2026-03-12",orderDate:"2026-03-04",customer:"토스증권",category:"Mac",mpn:"Z1JV",itemName:"MAC MINI/M4 Pro 14C CPU/20C GPU/64GB/2TB-KOR",qty:2,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
+  {id:15,quoteDate:"2026-02-27",orderDate:"백록",customer:"비바리퍼블리카(토스코어)",category:"Mac",mpn:"MU9D3KH/A",itemName:"MAC MINI/M4 10C CPU/10C GPU/16GB/256GB-KOR",qty:20,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[{id:1,qty:20,date:"2026-04-08",status:"대기",note:""}]},
+  {id:16,quoteDate:"2026-03-06",orderDate:"백록",customer:"토스뱅크",category:"Mac",mpn:"Z1L0000Q0",itemName:"MBA 13 SL/M5 10C CPU/10C GPU/24GB/512GB-KOR",qty:5,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
+  {id:17,quoteDate:"2026-03-06",orderDate:"백록",customer:"토스뱅크",category:"Mac",mpn:"Z1LQ0001V",itemName:"MBA 15 SL/M5 10C CPU/10C GPU/24GB/512GB-KOR",qty:5,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
+  {id:18,quoteDate:"2026-03-06",orderDate:"2026-03-06",customer:"토스뱅크",category:"Mac",mpn:"Z1MK000XH",itemName:"MBP 14 SL/M5 Max 18C CPU/40C GPU/64GB/2TB-KOR",qty:30,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
+  {id:19,quoteDate:"2026-03-06",orderDate:"2026-03-06",customer:"토스뱅크",category:"Mac",mpn:"Z1MY0003H",itemName:"MBP 16 SL/M5 Max 18C CPU/40C GPU/64GB/2TB-KOR",qty:30,orderStatus:"발주 완료 및 대기",invoice:"",notes:"12대 우선 납품",deliveries:[]},
+  {id:20,quoteDate:"2026-03-06",orderDate:"백록",customer:"토스페이먼츠",category:"Mac",mpn:"Z1L0000Q0",itemName:"MBA 13 SL/M5 10C CPU/10C GPU/24GB/512GB-KOR",qty:6,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
+  {id:21,quoteDate:"2026-03-06",orderDate:"2026-03-12",customer:"토스페이먼츠",category:"Mac",mpn:"Z1MK000XH",itemName:"MBP 14 SL/M5 Max 18C CPU/40C GPU/64GB/2TB-KOR",qty:3,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
+  {id:22,quoteDate:"2026-03-06",orderDate:"2026-03-12",customer:"토스페이먼츠",category:"Mac",mpn:"Z1MY0003H",itemName:"MBP 16 SL/M5 Max 18C CPU/40C GPU/64GB/2TB-KOR",qty:10,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
+  {id:23,quoteDate:"2026-03-10",orderDate:"재고 보유 및 3.11일 발주",customer:"토스인컴",category:"ACC",mpn:"MW2L3KH/A 외",itemName:"96W USB-C POWER ADAPTER-KOR",qty:23,orderStatus:"96W, Lightning 발주",invoice:"월말 합발행",notes:"MUW13KH/A 3개, MW2L3KH/A 5개, MUQ93FE/A 3개 따로 납품",deliveries:[{id:1,qty:4,date:"2026-03-12",status:"완료",note:""},{id:2,qty:3,date:"2026-04-14",status:"대기",note:""}]},
+  {id:24,quoteDate:"2026-03-10",orderDate:"2026-03-10",customer:"파이인스티튜트오브디자인",category:"Mac",mpn:"Z1ML",itemName:"MBP 14 SB/M5 Pro 18C CPU/20C GPU/48GB/1TB-KOR",qty:2,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
+  {id:25,quoteDate:"2026-03-12",orderDate:"2026-03-12",customer:"토스증권",category:"Mac",mpn:"Z1MK000XH",itemName:"MBP 14 SL/M5 Max 18C CPU/40C GPU/64GB/2TB-KOR",qty:40,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
+  {id:26,quoteDate:"2026-03-12",orderDate:"백록",customer:"토스증권",category:"Mac",mpn:"Z1LQ0001V",itemName:"MBA 15 SL/M5 10C CPU/10C GPU/24GB/512GB-KOR",qty:10,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
+  {id:27,quoteDate:"2026-03-12",orderDate:"재고 보유",customer:"토스인컴",category:"ACC",mpn:"MXK73KH/A 외",itemName:"MAGIC KEYBOARD TOUCH ID NUM KEY WH-KOR",qty:3,orderStatus:"납품 가능",invoice:"월말 합발행",notes:"",deliveries:[{id:1,qty:3,date:"2026-03-19",status:"완료",note:""}]},
+  {id:28,quoteDate:"2026-03-12",orderDate:"2026-03-23",customer:"토스증권",category:"Mac",mpn:"Z1CF",itemName:"MAC MINI/M4 10C CPU/10C GPU/32GB/256GB-KOR",qty:10,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
+  {id:29,quoteDate:"2026-03-12",orderDate:"2026-03-23",customer:"토스증권",category:"DISP",mpn:"MFF14KH/A",itemName:"STUDIO DISPLAY NANO/TILT/1M-KOR",qty:3,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
+  {id:30,quoteDate:"2026-03-13",orderDate:"2026-03-13",customer:"비바리퍼블리카(토스코어)",category:"Mac",mpn:"Z1JV001D3",itemName:"MAC MINI/M4 Pro 12C CPU/16C GPU/48GB/1TB-KOR",qty:2,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
+  {id:31,quoteDate:"2026-03-17",orderDate:"2026-03-18",customer:"토스인컴",category:"Mac",mpn:"Z1LQ0001V",itemName:"MBA 15 SL/M5 10C CPU/10C GPU/24GB/512GB-KOR",qty:2,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
+  {id:32,quoteDate:"2026-03-17",orderDate:"백록",customer:"토스인슈어런스",category:"Mac",mpn:"Z1MK000XH",itemName:"MBP 14 SL/M5 Max 18C CPU/40C GPU/64GB/2TB-KOR",qty:2,orderStatus:"발주 완료 및 대기",invoice:"",notes:"13대 발주넣음.",deliveries:[]},
+  {id:33,quoteDate:"2026-03-17",orderDate:"백록",customer:"토스인슈어런스",category:"Mac",mpn:"Z1LQ0001V",itemName:"MBA 15 SL/M5 10C CPU/10C GPU/24GB/512GB-KOR",qty:2,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
+  {id:34,quoteDate:"2026-03-19",orderDate:"2026-03-19",customer:"토스뱅크",category:"DISP",mpn:"MFEX4KH/A",itemName:"STUDIO DISPLAY STANDARD/TILT/1M-KOR",qty:2,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
+  {id:35,quoteDate:"2026-03-20",orderDate:"DPP",customer:"토스뱅크",category:"Mac",mpn:"MCYT4KH/A",itemName:"MAC MINI/M4 10C CPU/10C GPU/24GB/512GB-KOR",qty:8,orderStatus:"납품 가능",invoice:"3/24일 발행",notes:"",deliveries:[{id:1,qty:8,date:"2026-03-24",status:"완료",note:""}]},
+  {id:36,quoteDate:"2026-03-20",orderDate:"DPP",customer:"토스뱅크",category:"Mac",mpn:"MCX44KH/A",itemName:"MAC MINI/M4 Pro 12C CPU/16C GPU/24GB/512GB-KOR",qty:15,orderStatus:"",invoice:"",notes:"",deliveries:[]},
+  {id:37,quoteDate:"2026-03-23",orderDate:"2026-03-23",customer:"토스인슈어런스",category:"Mac",mpn:"Z1MK000XH",itemName:"MBP 14 SL/M5 Max 18C CPU/40C GPU/64GB/2TB-KOR",qty:3,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
+  {id:38,quoteDate:"2026-03-24",orderDate:"2026-03-25",customer:"토스증권",category:"Mac",mpn:"Z1JV",itemName:"MAC MINI/M4 Pro 14C CPU/20C GPU/64GB/2TB-KOR",qty:1,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
+  {id:39,quoteDate:"2026-03-25",orderDate:"백록",customer:"토스플레이스",category:"Mac",mpn:"Z1L0000Q0",itemName:"MBA 13 SL/M5 10C CPU/10C GPU/24GB/512GB-KOR",qty:3,orderStatus:"발주 완료 및 대기",invoice:"",notes:"입고 50대중 3대 사용",deliveries:[]},
+  {id:40,quoteDate:"2026-03-25",orderDate:"2026-03-25",customer:"토스플레이스",category:"Mac",mpn:"Z1MK000XH",itemName:"MBP 14 SL/M5 Max 18C CPU/40C GPU/64GB/2TB-KOR",qty:10,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
+  {id:41,quoteDate:"2026-03-25",orderDate:"2026-03-25",customer:"토스플레이스",category:"Mac",mpn:"Z1MY0003H",itemName:"MBP 16 SL/M5 Max 18C CPU/40C GPU/64GB/2TB-KOR",qty:10,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
+  {id:42,quoteDate:"2026-03-25",orderDate:"재고 보유",customer:"토스플레이스",category:"ACC",mpn:"MXK73KH/A",itemName:"MAGIC KEYBOARD TOUCH ID NUM KEY WH-KOR",qty:3,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
+  {id:43,quoteDate:"2026-03-25",orderDate:"재고 보유",customer:"토스플레이스",category:"ACC",mpn:"MXCK3KH/A",itemName:"MAGIC KEYBOARD TOUCH ID-KOR (USB-C to USB-C)",qty:3,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
+  {id:44,quoteDate:"2026-03-25",orderDate:"재고 보유",customer:"토스플레이스",category:"ACC",mpn:"MXK53KH/A",itemName:"MAGIC MOUSE WH-KOR",qty:3,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
+  {id:45,quoteDate:"2026-03-25",orderDate:"재고 보유",customer:"토스페이먼츠",category:"ACC",mpn:"MXK73KH/A",itemName:"MAGIC KEYBOARD TOUCH ID NUM KEY WH-KOR",qty:3,orderStatus:"납품 가능",invoice:"4/1일 발행",notes:"",deliveries:[{id:1,qty:3,date:"2026-04-01",status:"완료",note:""}]},
+  {id:46,quoteDate:"2026-03-18",orderDate:"재고 보유",customer:"비바리퍼블리카(토스코어)",category:"iPad",mpn:"MCFV4KH/A",itemName:"IPAD AIR M3 11 WF CL 128GB 스페이스그레이-KOR",qty:23,orderStatus:"납품 가능",invoice:"3/26일 발행",notes:"",deliveries:[{id:1,qty:23,date:"2026-03-26",status:"완료",note:""}]},
+  {id:47,quoteDate:"2026-03-18",orderDate:"2026-03-18",customer:"비바리퍼블리카(토스코어)",category:"iPad",mpn:"MCFV4KH/A",itemName:"IPAD AIR M3 11 WF CL 128GB 스페이스그레이-KOR",qty:2,orderStatus:"",invoice:"",notes:"",deliveries:[]},
+  {id:48,quoteDate:"2026-03-18",orderDate:"2026-03-18",customer:"비바리퍼블리카(토스코어)",category:"iPad",mpn:"MCFW4KH/A",itemName:"IPAD AIR M3 11 WF CL 128GB 블루-KOR",qty:1,orderStatus:"",invoice:"",notes:"",deliveries:[]},
+  {id:49,quoteDate:"2026-03-18",orderDate:"2026-03-18",customer:"비바리퍼블리카(토스코어)",category:"iPad",mpn:"MCFX4KH/A",itemName:"IPAD AIR M3 11 WF CL 128GB 스타라이트-KOR",qty:1,orderStatus:"",invoice:"",notes:"",deliveries:[]},
+  {id:50,quoteDate:"2026-03-18",orderDate:"2026-03-18",customer:"비바리퍼블리카(토스코어)",category:"iPad",mpn:"MCFY4KH/A",itemName:"IPAD AIR M3 11 WF CL 128GB 퍼플-KOR",qty:2,orderStatus:"",invoice:"",notes:"",deliveries:[]},
+  {id:51,quoteDate:"2026-03-26",orderDate:"DPP",customer:"토스뱅크",category:"Mac",mpn:"MU9D3KH/A",itemName:"MAC MINI/M4 10C CPU/10C GPU/16GB/256GB-KOR",qty:40,orderStatus:"발주 완료 및 대기",invoice:"",notes:"10대 홀딩 요청상태",deliveries:[{id:1,qty:14,date:"2026-04-06",status:"완료",note:""},{id:2,qty:16,date:"",status:"대기",note:""},{id:3,qty:10,date:"",status:"홀딩",note:"홀딩 요청"}]},
+  {id:52,quoteDate:"2026-03-27",orderDate:"2026-03-31",customer:"파이인스티튜트오브디자인",category:"Mac",mpn:"MCYT4KH/A",itemName:"MAC MINI/M4 10C CPU/10C GPU/24GB/512GB-KOR",qty:33,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
+  {id:53,quoteDate:"2026-04-03",orderDate:"2026-04-03",customer:"토스증권",category:"Mac",mpn:"Z1MK000XH",itemName:"MBP 14 SL/M5 Max 18C CPU/40C GPU/64GB/2TB-KOR",qty:60,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
+  {id:54,quoteDate:"2026-04-03",orderDate:"2026-04-03",customer:"토스증권",category:"Mac",mpn:"Z1LQ0001V",itemName:"MBA 15 SL/M5 10C CPU/10C GPU/24GB/512GB-KOR",qty:10,orderStatus:"발주 완료 및 대기",invoice:"",notes:"입고 50대중 10대 사용",deliveries:[]},
+];
+
+const CUSTOMERS=["비바리퍼블리카(토스코어)","파이인스티튜트오브디자인","토스증권","토스인컴","토스페이먼츠","토스뱅크","토스인슈어런스","토스플레이스"];
+const CATEGORIES=["Mac","iPad","ACC","DISP"];
+const ORDER_STATUS_OPTIONS=["발주 완료","납품 가능","발주 취소"];
+const DELIVERY_STATUS_OPTIONS=["대기","완료","취소","홀딩"];
+
+/* ── 가격표 (기밀 — HTML 내부에만 존재, 외부 전송 없음) ── */
+/* 업데이트: 2026-03-25 토스 표준 가격표 기준 */
+const PRICE_LIST=[
+  /* ── Mac ── */
+  {lob:"Mac",desc:"MBP 14 M5 Max 64GB/2TB",msrp:6840000,svo:5720000,m:(p,n)=>p==="Z1MK000XH"||/Z1MK/i.test(p)||(n.includes("MBP 14")&&n.includes("M5 MAX"))},
+  {lob:"Mac",desc:"MBP 16 M5 Max 64GB/2TB",msrp:7490000,svo:6264000,m:(p,n)=>p==="Z1MY0003H"||/Z1MY/i.test(p)||(n.includes("MBP 16")&&n.includes("M5 MAX"))},
+  {lob:"Mac",desc:"MBA 13 M5 24GB/512GB",msrp:2090000,svo:1748000,m:(p,n)=>p==="Z1L0000Q0"||/Z1L0/i.test(p)||(n.includes("MBA 13")&&n.includes("M5"))},
+  {lob:"Mac",desc:"MBA 15 M5 24GB/512GB",msrp:2390000,svo:1998000,m:(p,n)=>p==="Z1LQ0001V"||/Z1LQ/i.test(p)||(n.includes("MBA 15")&&n.includes("M5"))},
+  {lob:"Mac",desc:"Mac mini M4 16GB/256GB",msrp:890000,svo:744000,m:(p,n)=>p==="MU9D3KH/A"||(n.includes("MAC MINI")&&n.includes("16GB")&&n.includes("256GB")&&!n.includes("PRO"))},
+  {lob:"Mac",desc:"Mac mini M4 16GB/512GB",msrp:1190000,svo:995000,m:(p,n)=>p==="MU9E3KH/A"||(n.includes("MAC MINI")&&n.includes("16GB")&&n.includes("512GB")&&!n.includes("PRO"))},
+  {lob:"Mac",desc:"Mac mini M4 32GB/256GB",msrp:1490000,svo:1246000,m:(p,n)=>/Z1CF/i.test(p)||(n.includes("MAC MINI")&&n.includes("32GB")&&n.includes("256GB")&&!n.includes("PRO"))},
+  {lob:"Mac",desc:"Mac mini M4 32GB/512GB",msrp:1790000,svo:1497000,m:(p,n)=>p==="Z1JX0001X"||/Z1JX/i.test(p)||(n.includes("MAC MINI")&&n.includes("32GB")&&n.includes("512GB")&&!n.includes("PRO"))},
+  {lob:"Mac",desc:"Mac Studio M3 Ultra 96GB/1TB",msrp:8840000,svo:7393000,m:(p,n)=>/Z1CE/i.test(p)||n.includes("MAC STUDIO")},
+  /* ── Display ── */
+  {lob:"DISP",desc:"Studio Display Standard",msrp:3099000,svo:2704000,m:(p,n)=>["MFEW4KH/A","MFEX4KH/A"].includes(p)||(n.includes("STUDIO DISPLAY")&&n.includes("STANDARD"))},
+  {lob:"DISP",desc:"Studio Display Nano",msrp:2999000,svo:2617000,m:(p,n)=>["MFF14KH/A","MYJK3KH/A"].includes(p)||(n.includes("STUDIO DISPLAY")&&n.includes("NANO"))},
+  /* ── ACC ── */
+  {lob:"ACC",desc:"Magic Keyboard Touch ID USB-C",msrp:199000,svo:170000,m:(p,n)=>p==="MXCK3KH/A"||(n.includes("MAGIC KEYBOARD")&&n.includes("USB-C TO USB-C")&&!n.includes("NUMERIC")&&!n.includes("NUM KEY"))},
+  {lob:"ACC",desc:"Magic Keyboard Numeric",msrp:249000,svo:212000,m:(p,n)=>p==="MXK73KH/A"||(n.includes("MAGIC KEYBOARD")&&(n.includes("NUMERIC")||n.includes("NUM KEY")||n.includes("KEYPAD")))},
+  {lob:"ACC",desc:"Magic Trackpad",msrp:169000,svo:144000,m:(p,n)=>p==="MXK93KH/A"||n.includes("TRACKPAD")},
+  {lob:"ACC",desc:"Magic Mouse",msrp:99000,svo:84600,m:(p,n)=>p==="MXK53KH/A"||n.includes("MAGIC MOUSE")},
+  {lob:"ACC",desc:"20W USB-C Adapter",msrp:28000,svo:23900,m:(p,n)=>p==="MUW13KH/A"||(n.includes("20W")&&n.includes("ADAPTER"))},
+  {lob:"ACC",desc:"35W Dual USB-C Adapter",msrp:85000,svo:72600,m:(p,n)=>p==="MW2K3KH/A"||n.includes("35W")},
+  {lob:"ACC",desc:"70W USB-C Adapter",msrp:85000,svo:72600,m:(p,n)=>p==="MXN53KH/A"||(n.includes("70W")&&n.includes("ADAPTER"))},
+  {lob:"ACC",desc:"96W USB-C Adapter",msrp:99000,svo:84600,m:(p,n)=>p==="MW2L3KH/A"||(n.includes("96W")&&n.includes("ADAPTER"))},
+  {lob:"ACC",desc:"140W USB-C Adapter",msrp:139000,svo:118700,m:(p,n)=>p==="MW2M3KH/A"||n.includes("140W")},
+  {lob:"ACC",desc:"EarPods 3.5mm",msrp:28000,svo:23900,m:(p,n)=>p==="MWU53FE/A"||n.includes("EARPODS (3.5MM)")},
+  {lob:"ACC",desc:"EarPods USB-C",msrp:28000,svo:23900,m:(p,n)=>p==="MYQY3ZP/A"||n.includes("EARPODS (USB-C)")},
+  {lob:"ACC",desc:"USB-C to Lightning 1m",msrp:28000,svo:23900,m:(p,n)=>p==="MUQ93FE/A"||(n.includes("USB-C TO LIGHTNING")&&n.includes("1M"))},
+  {lob:"ACC",desc:"USB-C to Lightning 2m",msrp:45000,svo:38400,m:(p,n)=>p==="MW2R3FE/A"||(n.includes("USB-C TO LIGHTNING")&&n.includes("2M"))},
+  {lob:"ACC",desc:"Lightning to USB 1m",msrp:28000,svo:23900,m:(p,n)=>p==="MUQW3FE/A"||(n.includes("LIGHTNING TO USB")&&n.includes("1M"))},
+  {lob:"ACC",desc:"USB-C to MagSafe 3 2m",msrp:69000,svo:58900,m:(p,n)=>p==="MW613FE/A"||n.includes("MAGSAFE 3")},
+  {lob:"ACC",desc:"60W USB-C Cable 1m",msrp:28000,svo:23900,m:(p,n)=>p==="MW493FE/A"||(n.includes("60W")&&n.includes("CABLE"))},
+  {lob:"ACC",desc:"240W USB-C Cable 2m",msrp:45000,svo:38400,m:(p,n)=>p==="MYQT3FE/A"||(n.includes("240W")&&n.includes("CABLE"))},
+  /* ── AppleCare+ ── */
+  {lob:"AC",desc:"AppleCare+ MBP 14 M5",msrp:429000,svo:331000,m:(p,n)=>p==="SCXT3ZX/A"||n.includes("APPLECARE")&&n.includes("14")&&n.includes("M5")},
+  {lob:"AC",desc:"AppleCare+ MBP 16 M5",msrp:599000,svo:462000,m:(p,n)=>p==="SCXU3ZX/A"||n.includes("APPLECARE")&&n.includes("16")&&n.includes("M5")},
+  {lob:"AC",desc:"AppleCare+ MBA 13 M5",msrp:299000,svo:231000,m:(p,n)=>p==="SCW83ZX/A"||n.includes("APPLECARE")&&n.includes("AIR 13")&&n.includes("M5")},
+  {lob:"AC",desc:"AppleCare+ MBA 15 M5",msrp:349000,svo:269000,m:(p,n)=>p==="SCW93ZX/A"||n.includes("APPLECARE")&&n.includes("AIR 15")&&n.includes("M5")},
+  {lob:"AC",desc:"AppleCare+ Mac mini M4",msrp:129000,svo:99000,m:(p,n)=>p==="SR1C2ZX/A"||n.includes("APPLECARE")&&n.includes("MINI")&&n.includes("M4")},
+  {lob:"AC",desc:"AppleCare+ Mac Studio M3",msrp:219000,svo:169000,m:(p,n)=>p==="STKT2ZX/A"||n.includes("APPLECARE")&&n.includes("STUDIO")&&n.includes("M3")},
+  {lob:"AC",desc:"AppleCare+ Studio Display",msrp:229000,svo:176000,m:(p,n)=>p==="SD273ZX/A"||n.includes("APPLECARE")&&n.includes("DISPLAY")},
+];
+/* 카테고리 할인율 (단가표 미등록 품목 fallback) */
+const CAT_RATE={Mac:0.08,iPad:0.06,ACC:0.06,DISP:0.04,AC:0.15};
+
+function matchPrice(mpn,itemName){
+  const p=(mpn||"").replace(/\s+외.*/,"").trim();
+  const n=(itemName||"").toUpperCase();
+  for(const pr of PRICE_LIST){try{if(pr.m(p,n)) return pr;}catch(e){}}
+  return null;
+}
+function getPriceInfo(mpn,itemName){
+  const pr=matchPrice(mpn,itemName);
+  if(!pr) return{matched:false};
+  const buyVatEx=Math.round(pr.msrp*0.91/1.1);
+  return{matched:true,msrp:pr.msrp,svo:pr.svo,buyVatEx,gp:pr.svo-buyVatEx,desc:pr.desc};
+}
+function getISOWeekLabel(ds){
+  if(!ds||!String(ds).match(/^\d{4}-\d{2}-\d{2}/)) return null;
+  const d=new Date(ds);
+  const year=d.getFullYear(), month=d.getMonth()+1;
+  const firstDow=new Date(year,d.getMonth(),1).getDay(); // 0=일
+  const weekOfMonth=Math.ceil((d.getDate()+firstDow)/7);
+  return`${year}년 ${month}월 ${weekOfMonth}번째 주`;
+}
+
+/* ── 납품 상태 계산 ── */
+function getBatchQty(d){ return d.items?d.items.reduce((s,i)=>s+(+i.qty||0),0):(+d.qty||0); }
+function calcDelivery(row){
+  const ds=row.deliveries||[];
+  const total=(row.qty||0)+(row.subItems||[]).reduce((s,i)=>s+(+i.qty||0),0);
+  if(!ds.length) return {label:"납품 전",pct:0,done:0,total,color:"#8B95A1",bg:"#F2F4F6",type:"none"};
+  const done=ds.filter(d=>d.status==="완료").reduce((s,d)=>s+getBatchQty(d),0);
+  const cancelled=ds.filter(d=>d.status==="취소").reduce((s,d)=>s+getBatchQty(d),0);
+  const pct=total>0?Math.min(100,Math.round(done/total*100)):0;
+  if(done>=total&&total>0) return {label:`전체 완료 (${done})`,pct:100,done,total,color:"#00B252",bg:"#E6F9EE",type:"done"};
+  if(done>0) return {label:`${done}/${total} 완료`,pct,done,total,color:"#FF8C00",bg:"#FFF4E0",type:"partial"};
+  if(ds.some(d=>d.status==="대기")) return {label:`${total}개 납품 예정`,pct:0,done,total,color:"#14B8A6",bg:"#F0FDFA",type:"pending"};
+  return {label:"납품 전",pct:0,done,total,color:"#8B95A1",bg:"#F2F4F6",type:"none"};
+}
+function orderStatusStyle(s){
+  if(!s) return {bg:"#F2F4F6",color:"#8B95A1"};
+  if(s.includes("취소")) return {bg:"#FFE9EC",color:"#F04452"};
+  if(s.includes("납품 가능")) return {bg:"#E6F9EE",color:"#00B252"};
+  if(s.includes("발주 완료")) return {bg:"#F0FDFA",color:"#0D9488"};
+  if(s.includes("홀딩")) return {bg:"#FFF4E0",color:"#FF8C00"};
+  return {bg:"#F2F4F6",color:"#8B95A1"};
+}
+function getCatStyle(cat){
+  const m={Mac:{bg:"#0D9488",c:"#fff"},iPad:{bg:"#14B8A6",c:"#fff"},ACC:{bg:"#5EEAD4",c:"#0F766E"},DISP:{bg:"#0F766E",c:"#fff"}};
+  return m[cat]||{bg:"#99F6E4",c:"#0F766E"};
+}
+
+/* ── 견적서 엑셀 스마트 파서 ── */
+function excelSerialToDate(serial){
+  // Excel serial → YYYY-MM-DD (40000~60000 범위만 날짜로 처리)
+  if(typeof serial==="number"&&serial>40000&&serial<60000){
+    const d=new Date((serial-25569)*86400*1000);
+    return d.toISOString().slice(0,10);
+  }
+  return null;
+}
+function parseQuotationExcel(rawRows){
+  let headerRowIdx=-1, colMap={no:-1,mpn:-1,name:-1,qty:-1,unitPrice:-1};
+  for(let i=0;i<rawRows.length;i++){
+    const row=rawRows[i].map(c=>String(c||"").replace(/\s+/g," ").trim().toLowerCase());
+    const hasProduct=row.some(c=>c.includes("품목")||c.includes("product")||c.includes("part"));
+    const hasQty=row.some(c=>c.includes("수량")||c.includes("qty")||c.includes("q'ty"));
+    if(hasProduct&&hasQty){
+      headerRowIdx=i;
+      row.forEach((c,j)=>{
+        if((c==="no."||c==="no"||c==="번호")&&colMap.no<0) colMap.no=j;
+        if((c.includes("품목")||c.includes("product")||c==="part no"||c==="part no.")&&!c.includes("품명")&&colMap.mpn<0) colMap.mpn=j;
+        if((c.includes("품명")||c.includes("description"))&&colMap.name<0) colMap.name=j;
+        if((c.includes("수량")||c.includes("qty")||c.includes("q'ty"))&&colMap.qty<0) colMap.qty=j;
+        if((c.includes("단가")||c.includes("unit price"))&&colMap.unitPrice<0) colMap.unitPrice=j;
+      });
+      break;
+    }
+  }
+  let quoteDate="", customer="";
+  for(let i=0;i<Math.min(rawRows.length,20);i++){
+    const row=rawRows[i];
+    const rowStr=row.map(c=>String(c||"")).join(" ");
+    if(rowStr.includes("견적 일자")||rowStr.includes("견적일자")||rowStr.includes("견적일")){
+      for(const c of row){
+        const s=String(c||"");
+        if(s.match(/\d{4}[-./]\d{1,2}[-./]\d{1,2}/)){
+          quoteDate=s.replace(/\s.*$/,"").slice(0,10);
+          break;
+        }
+        // Excel 시리얼 날짜 처리
+        const converted=excelSerialToDate(c);
+        if(converted){quoteDate=converted;break;}
+      }
+    }
+    if(rowStr.includes("수신")||rowStr.includes("수 신")){
+      for(const c of row){
+        const s=String(c||"").trim();
+        if(s&&!s.includes("수신")&&!s.includes("수 신")&&s.length>2&&s.length<40){
+          customer=s.replace(/\s*귀중.*$/,"").replace(/\s*귀하.*$/,"").trim();
+          break;
+        }
+      }
+    }
+  }
+  if(headerRowIdx<0) return {items:[], quoteDate, customer, mode:"fallback"};
+  const nextRow=rawRows[headerRowIdx+1]||[];
+  nextRow.forEach((c,j)=>{
+    const cl=String(c||"").toLowerCase().trim();
+    if(cl.includes("q'ty")||cl.includes("qty")) if(colMap.qty<0) colMap.qty=j;
+    if(cl.includes("unit price")) if(colMap.unitPrice<0) colMap.unitPrice=j;
+  });
+  const items=[];
+  for(let i=headerRowIdx+1;i<rawRows.length;i++){
+    const row=rawRows[i];
+    const noVal=colMap.no>=0?row[colMap.no]:"";
+    const mpnVal=colMap.mpn>=0?String(row[colMap.mpn]||"").trim():"";
+    const qtyVal=colMap.qty>=0?row[colMap.qty]:0;
+    const priceVal=colMap.unitPrice>=0?row[colMap.unitPrice]:0;
+    const isProductRow=(typeof noVal==="number"&&!isNaN(noVal)&&noVal>0)||
+                        (mpnVal&&/^[A-Z0-9가-힣]{2,}/.test(mpnVal)&&typeof qtyVal==="number"&&qtyVal>0);
+    if(isProductRow&&mpnVal){
+      let nameLines=[colMap.name>=0?String(row[colMap.name]||"").trim():""];
+      let j=i+1;
+      while(j<rawRows.length){
+        const nr=rawRows[j];
+        const nextNo=colMap.no>=0?nr[colMap.no]:"";
+        if(typeof nextNo==="number"&&nextNo>0) break;
+        const specText=colMap.name>=0?String(nr[colMap.name]||"").trim():"";
+        if(specText&&!specText.includes("이하여백")&&!specText.includes("소계")&&!specText.includes("합계")) nameLines.push(specText);
+        if(specText.includes("이하여백")) break;
+        j++;
+      }
+      items.push({mpn:mpnVal,itemName:nameLines.filter(Boolean).join(" / ")||mpnVal,qty:Math.round(+qtyVal||0),unitPrice:Math.round(+priceVal||0)});
+    }
+  }
+  return {items, quoteDate, customer, mode:"structured"};
+}
+
+const emptyForm=()=>({quoteDate:"",orderDate:"",orderDateMemo:"",customer:CUSTOMERS[0],category:"Mac",mpn:"",itemName:"",qty:1,orderStatus:"발주 완료 및 대기",invoice:"",invoiceDate:"",notes:"",deliveries:[]});
+
+/* ══════════════ 납품 관리 모달 ══════════════ */
+function DeliveryModal({row, onClose, onSave}){
+  // 주문 전체 품목 (메인 + subItems)
+  const allOrderItems=[
+    {mpn:row.mpn,itemName:row.itemName,ordQty:row.qty},
+    ...(row.subItems||[]).map(si=>({mpn:si.mpn||"",itemName:si.itemName||"",ordQty:+si.qty||0}))
+  ];
+  const totalOrderQty=allOrderItems.reduce((s,i)=>s+(i.ordQty||0),0);
+
+  // 기존 배치에 items 없으면 변환 (이전 데이터 호환)
+  const initD=JSON.parse(JSON.stringify(row.deliveries||[])).map(d=>({
+    ...d,
+    invoiceDate:d.invoiceDate||"",
+    invoiceMemo:d.invoiceMemo||"",
+    items:d.items||allOrderItems.map((oi,idx)=>({mpn:oi.mpn,itemName:oi.itemName,ordQty:oi.ordQty,qty:idx===0?(+d.qty||0):0}))
+  }));
+  const firstId=(row.deliveries||[]).reduce((m,d)=>Math.max(m,d.id||0),0)+1;
+  const initDWithDefault=initD.length>0?initD:[{
+    id:firstId,qty:0,date:"",status:"대기",note:"",invoiceDate:"",invoiceMemo:"",
+    items:allOrderItems.map(oi=>({mpn:oi.mpn,itemName:oi.itemName,ordQty:oi.ordQty,qty:0}))
+  }];
+  const [deliveries,setDeliveries]=useState(initDWithDefault);
+  const [nextDId,setNextDId]=useState(firstId+(initD.length>0?0:1));
+  const [undoState,setUndoState]=useState(null);
+  function saveUndo(){ if(!undoState) setUndoState(JSON.parse(JSON.stringify(deliveries))); }
+  function undoFill(){ if(undoState){setDeliveries(undoState);setUndoState(null);} }
+
+  const done=deliveries.filter(d=>d.status==="완료").reduce((s,d)=>s+getBatchQty(d),0);
+  const cancelled=deliveries.filter(d=>d.status==="취소").reduce((s,d)=>s+getBatchQty(d),0);
+  const remain=totalOrderQty-done-cancelled;
+  const pct=totalOrderQty>0?Math.min(100,Math.round(done/totalOrderQty*100)):0;
+
+  function addBatch(){
+    // 품목별 잔여 수량 계산 후 자동 입력
+    const newItems=allOrderItems.map(oi=>{
+      const allocated=deliveries.reduce((s,d)=>{const it=(d.items||[]).find(i=>i.mpn===oi.mpn);return s+(it?+it.qty||0:0);},0);
+      return{mpn:oi.mpn,itemName:oi.itemName,ordQty:oi.ordQty,qty:Math.max(0,(oi.ordQty||0)-allocated)};
+    });
+    const newTotal=newItems.reduce((s,i)=>s+(+i.qty||0),0);
+    setDeliveries(p=>[...p,{id:nextDId,items:newItems,qty:newTotal,date:"",status:"대기",note:"",invoiceDate:"",invoiceMemo:"",fromOther:false}]);
+    setNextDId(n=>n+1);
+  }
+  function updateItem(batchId,idx,val){
+    setDeliveries(p=>p.map(d=>{
+      if(d.id!==batchId) return d;
+      const newItems=d.items.map((item,i)=>i===idx?{...item,qty:Math.max(0,+val||0)}:item);
+      return{...d,items:newItems,qty:newItems.reduce((s,i)=>s+(+i.qty||0),0)};
+    }));
+  }
+  function updateD(id,field,val){ setDeliveries(p=>p.map(d=>d.id===id?{...d,[field]:val}:d)); }
+  function removeD(id){ setDeliveries(p=>p.filter(d=>d.id!==id)); }
+  function autoFillBatch(batchId){
+    saveUndo();
+    setDeliveries(p=>p.map(d=>{
+      if(d.id!==batchId) return d;
+      const newItems=(d.items||[]).map(item=>{
+        const allocatedOthers=p.filter(od=>od.id!==batchId)
+          .reduce((s,od)=>{const oi=(od.items||[]).find(i=>i.mpn===item.mpn);return s+(oi?+oi.qty||0:0);},0);
+        return{...item,qty:Math.max(0,(item.ordQty||0)-allocatedOthers)};
+      });
+      return{...d,items:newItems};
+    }));
+  }
+  function handleSave(){ onSave(deliveries.map(d=>({...d,qty:getBatchQty(d)}))); }
+
+  const sc={완료:{bg:"#E6F9EE",c:"#00B252"},대기:{bg:"#F0FDFA",c:"#0D9488"},취소:{bg:"#FFE9EC",c:"#F04452"},홀딩:{bg:"#FFF4E0",c:"#FF8C00"}};
+
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.35)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(12px)"}} onClick={onClose}>
+      <div style={{background:"rgba(255,255,255,0.88)",backdropFilter:"blur(24px) saturate(160%)",WebkitBackdropFilter:"blur(24px) saturate(160%)",borderRadius:20,width:"min(620px,96vw)",maxHeight:"88vh",overflowY:"auto",boxShadow:"0 16px 56px rgba(0,0,0,0.18),inset 0 1px 0 rgba(255,255,255,0.9)",border:"1px solid rgba(255,255,255,0.6)"}} onClick={e=>e.stopPropagation()}>
+        {/* 헤더 */}
+        <div style={{background:"#111218",padding:"20px 24px",borderRadius:"20px 20px 0 0",color:"#fff"}}>
+          <div style={{fontSize:16,fontWeight:800,marginBottom:4}}>📦 납품 관리</div>
+          {/* 품목 목록 */}
+          <div style={{background:"rgba(255,255,255,0.12)",borderRadius:8,padding:"8px 12px",marginBottom:10}}>
+            {allOrderItems.map((oi,i)=>(
+              <div key={i} style={{display:"flex",gap:8,fontSize:11,opacity:0.92,marginBottom:i<allOrderItems.length-1?4:0,alignItems:"center"}}>
+                <span style={{fontFamily:"monospace",flexShrink:0,fontWeight:700,width:110,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{oi.mpn}</span>
+                <span style={{flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{oi.itemName}</span>
+                <span style={{flexShrink:0,fontWeight:700,background:"rgba(255,255,255,0.2)",borderRadius:6,padding:"1px 7px"}}>{oi.ordQty}개</span>
+              </div>
+            ))}
+          </div>
+          {/* 진행률 */}
+          <div>
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+              <span style={{fontSize:12,opacity:0.9}}>납품 진행률</span>
+              <span style={{fontSize:12,fontWeight:700}}>{done}/{totalOrderQty}개 완료 ({pct}%)</span>
+            </div>
+            <div style={{height:8,background:"rgba(255,255,255,0.3)",borderRadius:4,overflow:"hidden"}}>
+              <div style={{height:"100%",width:`${pct}%`,background:"rgba(255,255,255,0.9)",borderRadius:4}}/>
+            </div>
+            <div style={{fontSize:11,opacity:0.75,marginTop:4}}>{remain>0&&`잔여 ${remain}개`}{cancelled>0&&` · 취소 ${cancelled}개`}</div>
+          </div>
+        </div>
+
+        <div style={{padding:"20px 24px"}}>
+          {deliveries.length===0&&<div style={{textAlign:"center",color:"#8B95A1",padding:"20px 0",fontSize:13}}>아직 납품 내역이 없습니다.</div>}
+          {deliveries.map((d,i)=>{
+            const batchTotal=getBatchQty(d);
+            const batchAllDone=d.status==="완료"&&d.date&&(d.invoiceDate||d.invoiceMemo);
+            return(
+              <div key={d.id} style={{border:`1.5px solid ${batchAllDone?"#0D9488":d.status==="완료"?"#00B252":d.status==="취소"?"#F04452":"#99F6E4"}`,borderRadius:12,padding:"14px 16px",marginBottom:10,background:batchAllDone?"rgba(13,148,136,0.10)":"rgba(255,255,255,0.5)",transition:"all 0.3s"}}>
+
+                {/* 배치 헤더 */}
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    <div style={{width:24,height:24,borderRadius:"50%",background:"#0D9488",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,flexShrink:0}}>{i+1}</div>
+                    <span style={{fontSize:13,fontWeight:700}}>납품 배치 {i+1}</span>
+                    <span style={{fontSize:11,background:"#F0FDFA",color:"#0D9488",borderRadius:10,padding:"2px 8px",fontWeight:700}}>합계 {batchTotal}개</span>
+                  </div>
+                  <div style={{display:"flex",gap:6}}>
+                    <button style={{border:"1px solid #5EEAD4",background:"#F0FDFA",color:"#0D9488",borderRadius:6,padding:"4px 10px",fontSize:12,cursor:"pointer",fontWeight:600}} onClick={()=>autoFillBatch(d.id)} title="잔여 수량 자동 입력">⚡ 일괄입력</button>
+                    {undoState&&<button style={{border:"1.5px solid #8B95A1",background:"#F2F4F6",color:"#4A5568",borderRadius:6,padding:"4px 10px",fontSize:12,cursor:"pointer",fontWeight:700}} onClick={undoFill}>↩ 취소</button>}
+                    <button style={{border:"none",background:"#FFE9EC",color:"#F04452",borderRadius:6,padding:"4px 10px",fontSize:12,cursor:"pointer",fontWeight:600}} onClick={()=>removeD(d.id)}>삭제</button>
+                  </div>
+                </div>
+
+                {/* 품목별 수량 */}
+                <div style={{background:"#F0FDFA",borderRadius:8,padding:"10px 12px",marginBottom:10,border:"1px solid #99F6E4"}}>
+                  <div style={{fontSize:11,fontWeight:700,color:"#0D9488",marginBottom:8}}>품목별 납품 수량 <span style={{fontWeight:400,color:"#8B95A1"}}>(0개 = 이번 배치 미포함)</span></div>
+                  {(d.items||[]).map((item,idx)=>{
+                    const allocatedOthers=deliveries.filter(od=>od.id!==d.id).reduce((s,od)=>{const oi=(od.items||[]).find(i=>i.mpn===item.mpn);return s+(oi?+oi.qty||0:0);},0);
+                    const itemRemain=Math.max(0,(item.ordQty||0)-allocatedOthers);
+                    return(
+                    <div key={idx} style={{display:"flex",alignItems:"center",gap:6,marginBottom:idx<d.items.length-1?6:0}}>
+                      <span style={{fontSize:10,color:"#0D9488",fontWeight:700,fontFamily:"monospace",width:100,flexShrink:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={item.mpn}>{item.mpn}</span>
+                      <span style={{flex:1,fontSize:11,color:"#191F28",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",minWidth:0}} title={item.itemName}>{item.itemName}</span>
+                      <span style={{fontSize:11,color:"#8B95A1",flexShrink:0,whiteSpace:"nowrap"}}>/{item.ordQty||0}개</span>
+                      <button style={{border:"1px solid #99F6E4",background:"#F0FDFA",color:"#0D9488",borderRadius:5,padding:"3px 7px",fontSize:10,cursor:"pointer",fontWeight:700,flexShrink:0,whiteSpace:"nowrap"}} onClick={()=>{saveUndo();updateItem(d.id,idx,itemRemain);}}>일괄</button>
+                      <input
+                        style={{border:`1.5px solid ${+item.qty>0?"#0D9488":"#E5E8EB"}`,borderRadius:6,padding:"5px 8px",fontSize:13,outline:"none",width:68,textAlign:"right",flexShrink:0,fontWeight:+item.qty>0?700:400,color:+item.qty>0?"#0D9488":"#191F28",background:+item.qty>0?"#F0FDFA":"#fff"}}
+                        type="number" min="0"
+                        value={item.qty}
+                        onChange={e=>updateItem(d.id,idx,e.target.value)}/>
+                      <span style={{fontSize:11,color:"#8B95A1",flexShrink:0}}>개</span>
+                    </div>
+                    );
+                  })}
+                  {(d.items||[]).length>1&&(
+                    <div style={{display:"flex",justifyContent:"flex-end",marginTop:8,paddingTop:6,borderTop:"1px solid #99F6E4",fontSize:12,fontWeight:700,color:"#0D9488"}}>
+                      이번 배치 합계: {batchTotal}개
+                    </div>
+                  )}
+                </div>
+
+                {/* 날짜 */}
+                <div style={{marginBottom:10}}>
+                  <div style={{fontSize:11,fontWeight:600,color:"#8B95A1",marginBottom:3}}>납품 예정일</div>
+                  <input style={{border:"1.5px solid #E5E8EB",borderRadius:8,padding:"7px 10px",fontSize:13,outline:"none",width:"100%"}} type="date" value={d.date} onChange={e=>{updateD(d.id,"date",e.target.value);e.target.blur();}}/>
+                </div>
+
+                {/* 상태 */}
+                <div style={{marginBottom:10}}>
+                  <div style={{fontSize:11,fontWeight:600,color:"#8B95A1",marginBottom:6}}>납품 상태</div>
+                  <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                    {DELIVERY_STATUS_OPTIONS.map(s=>(
+                      <button key={s} style={{border:`1.5px solid ${d.status===s?sc[s].c:"#E5E8EB"}`,background:d.status===s?sc[s].bg:"#fff",color:d.status===s?sc[s].c:"#8B95A1",borderRadius:20,padding:"4px 12px",fontSize:12,fontWeight:d.status===s?700:400,cursor:"pointer"}} onClick={()=>updateD(d.id,"status",s)}>{s}</button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 메모 */}
+                <div style={{marginBottom:10}}>
+                  <div style={{fontSize:11,fontWeight:600,color:"#8B95A1",marginBottom:3}}>메모</div>
+                  <input style={{border:"1.5px solid #E5E8EB",borderRadius:8,padding:"7px 10px",fontSize:13,outline:"none",width:"100%"}} value={d.note} onChange={e=>updateD(d.id,"note",e.target.value)} placeholder="메모"/>
+                </div>
+
+                {/* 세금계산서 */}
+                <div style={{background:d.invoiceDate||d.invoiceMemo?"#F0FFF6":"#F0FDFA",border:`1.5px solid ${d.invoiceDate||d.invoiceMemo?"#B8EDD1":"#E5E8EB"}`,borderRadius:8,padding:"10px 12px",marginBottom:10}}>
+                  <div style={{fontSize:11,fontWeight:700,color:d.invoiceDate||d.invoiceMemo?"#00843D":"#8B95A1",marginBottom:8}}>🧾 세금계산서</div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                    <div>
+                      <div style={{fontSize:10,fontWeight:600,color:"#8B95A1",marginBottom:3}}>발행일</div>
+                      <input style={{border:"1.5px solid #E5E8EB",borderRadius:6,padding:"6px 8px",fontSize:12,outline:"none",width:"100%",boxSizing:"border-box"}} type="date" value={d.invoiceDate||""} onChange={e=>{updateD(d.id,"invoiceDate",e.target.value);e.target.blur();}}/>
+                    </div>
+                    <div>
+                      <div style={{fontSize:10,fontWeight:600,color:"#8B95A1",marginBottom:3}}>메모</div>
+                      <input style={{border:"1.5px solid #E5E8EB",borderRadius:6,padding:"6px 8px",fontSize:12,outline:"none",width:"100%",boxSizing:"border-box"}} value={d.invoiceMemo||""} onChange={e=>updateD(d.id,"invoiceMemo",e.target.value)} placeholder="월말 합발행 등"/>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 타사 */}
+                <div style={{background:d.fromOther?"#FFF4E0":"#F0FDFA",border:`1px solid ${d.fromOther?"#FFD080":"#E5E8EB"}`,borderRadius:8,padding:"8px 12px",display:"flex",alignItems:"center",gap:8,cursor:"pointer"}}
+                  onClick={()=>updateD(d.id,"fromOther",!d.fromOther)}>
+                  <div style={{width:18,height:18,borderRadius:4,border:`2px solid ${d.fromOther?"#FF8C00":"#99F6E4"}`,background:d.fromOther?"#FF8C00":"#fff",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                    {d.fromOther&&<span style={{color:"#fff",fontSize:11,fontWeight:900}}>✓</span>}
+                  </div>
+                  <span style={{fontSize:12,fontWeight:d.fromOther?700:400,color:d.fromOther?"#CC6600":"#8B95A1"}}>🔄 타사 제품 — 다른 계열사 배정분에서 당겨온 수량</span>
+                </div>
+              </div>
+            );
+          })}
+          <button style={{border:"2px dashed #99F6E4",background:"#F0FDFA",color:"#14B8A6",borderRadius:12,padding:"10px",width:"100%",fontSize:13,fontWeight:600,cursor:"pointer",marginTop:4}} onClick={addBatch}>+ 납품 배치 추가</button>
+          <div style={{display:"flex",gap:10,justifyContent:"flex-end",paddingTop:16,marginTop:8,borderTop:"1px solid #F2F4F6"}}>
+            <button style={{border:"1px solid #E5E8EB",background:"#fff",color:"#8B95A1",borderRadius:10,padding:"10px 22px",fontSize:14,fontWeight:600,cursor:"pointer"}} onClick={onClose}>취소</button>
+            <button style={{border:"none",background:"#0D9488",color:"#fff",borderRadius:10,padding:"10px 28px",fontSize:14,fontWeight:700,cursor:"pointer"}} onClick={handleSave}>저장</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════ 추가/수정 모달 ══════════════ */
+function AddEditModal({initial, onClose, onSave}){
+  const [form,setForm]=useState(initial||emptyForm());
+  const [subItems,setSubItems]=useState(initial?.subItems||[]);
+  const [nextSId,setNextSId]=useState(100);
+  const set=(k,v)=>setForm(f=>({...f,[k]:v}));
+  const inp={border:"1.5px solid #E5E8EB",borderRadius:8,padding:"8px 11px",fontSize:13,outline:"none",width:"100%",color:"#191F28"};
+  const lbl={fontSize:12,fontWeight:600,color:"#8B95A1",marginBottom:4,display:"block"};
+  const grp={marginBottom:14};
+  function addSubItem(){ setSubItems(p=>[...p,{id:nextSId,mpn:"",itemName:"",qty:1}]); setNextSId(n=>n+1); }
+  function removeSubItem(id){ setSubItems(p=>p.filter(s=>s.id!==id)); }
+  function updateSubItem(id,field,val){ setSubItems(p=>p.map(s=>s.id===id?{...s,[field]:val}:s)); }
+  function handleSave(){ onSave({...form,subItems:subItems.filter(s=>s.mpn||s.itemName)}); }
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.35)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(12px)"}} onClick={onClose}>
+      <div style={{background:"rgba(255,255,255,0.88)",backdropFilter:"blur(24px) saturate(160%)",WebkitBackdropFilter:"blur(24px) saturate(160%)",borderRadius:20,width:"min(580px,96vw)",maxHeight:"92vh",overflowY:"auto",boxShadow:"0 16px 56px rgba(0,0,0,0.18),inset 0 1px 0 rgba(255,255,255,0.9)",border:"1px solid rgba(255,255,255,0.6)"}} onClick={e=>e.stopPropagation()}>
+        <div style={{background:"#111218",padding:"20px 24px",borderRadius:"20px 20px 0 0",color:"#fff"}}>
+          <div style={{fontSize:16,fontWeight:800}}>{initial?.id?"✏️ 수주 수정":"➕ 새 발주 등록"}</div>
+        </div>
+        <div style={{padding:"20px 24px"}}>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 14px"}}>
+            <div style={grp}><label style={lbl}>견적일</label><input style={inp} type="date" value={form.quoteDate} onChange={e=>{set("quoteDate",e.target.value);e.target.blur();}}/></div>
+            <div style={grp}>
+              <label style={lbl}>수발주일</label>
+              <input style={inp} type="date" value={form.orderDate||""} onChange={e=>{set("orderDate",e.target.value);e.target.blur();}}/>
+            </div>
+            <div style={grp}>
+              <label style={lbl}>수발주 메모</label>
+              <input style={inp} value={form.orderDateMemo||""} onChange={e=>set("orderDateMemo",e.target.value)} placeholder="백록, DPP, 재고 보유 등"/>
+            </div>
+          </div>
+          <div style={grp}><label style={lbl}>매출처명</label><select style={inp} value={form.customer} onChange={e=>set("customer",e.target.value)}>{CUSTOMERS.map(c=><option key={c}>{c}</option>)}</select></div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 14px"}}>
+            <div style={grp}><label style={lbl}>구분</label><select style={inp} value={form.category} onChange={e=>set("category",e.target.value)}>{CATEGORIES.map(c=><option key={c}>{c}</option>)}</select></div>
+            <div style={grp}><label style={lbl}>수량 (메인 품목)</label><input style={inp} type="number" value={form.qty} onChange={e=>set("qty",+e.target.value)}/></div>
+          </div>
+          <div style={grp}><label style={lbl}>MPN (메인)</label><input style={inp} value={form.mpn} onChange={e=>set("mpn",e.target.value)} placeholder="Z1MK, MU9D3KH/A 등"/></div>
+          <div style={grp}><label style={lbl}>품목명 (메인)</label><input style={inp} value={form.itemName} onChange={e=>set("itemName",e.target.value)} placeholder="품목명 입력"/></div>
+          <div style={grp}><label style={lbl}>발주 확인</label><select style={inp} value={form.orderStatus} onChange={e=>set("orderStatus",e.target.value)}>{ORDER_STATUS_OPTIONS.map(o=><option key={o}>{o}</option>)}</select></div>
+          <div style={grp}>
+            <label style={lbl}>계산서 발행일</label>
+            <input type="date" style={inp} value={form.invoiceDate||""} onChange={e=>{set("invoiceDate",e.target.value);e.target.blur();}}/>
+          </div>
+          <div style={grp}>
+            <label style={lbl}>계산서 메모</label>
+            <input style={inp} value={form.invoice||""} onChange={e=>set("invoice",e.target.value)} placeholder="월말 합발행, 별도 메모 등"/>
+          </div>
+<div style={grp}><label style={lbl}>특이사항</label><textarea style={{...inp,minHeight:60,resize:"vertical"}} value={form.notes} onChange={e=>set("notes",e.target.value)}/></div>
+
+          {/* 추가 품목 */}
+          <div style={{borderTop:"1.5px dashed #99F6E4",paddingTop:16,marginTop:4}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+              <div style={{fontSize:13,fontWeight:700,color:"#191F28"}}>추가 품목 <span style={{fontSize:11,color:"#8B95A1",fontWeight:400}}>({subItems.length}종) — 목록에 "MPN 외 N종"으로 표시</span></div>
+              <button style={{border:"1.5px solid #99F6E4",background:"#F0FDFA",color:"#0D9488",borderRadius:8,padding:"5px 12px",fontSize:12,fontWeight:700,cursor:"pointer"}} onClick={addSubItem}>+ 품목 추가</button>
+            </div>
+            {subItems.length===0&&<div style={{fontSize:12,color:"#8B95A1",textAlign:"center",padding:"8px 0",background:"#F0FDFA",borderRadius:8}}>추가 품목 없음</div>}
+            {subItems.map((si,idx)=>(
+              <div key={si.id} style={{border:"1px solid #E5E8EB",borderRadius:10,padding:"10px 12px",marginBottom:8,background:"#F5FFFE"}}>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
+                  <span style={{fontSize:11,fontWeight:600,color:"#8B95A1"}}>추가 품목 {idx+1}</span>
+                  <button style={{border:"none",background:"#FFE9EC",color:"#F04452",borderRadius:6,padding:"2px 8px",fontSize:11,cursor:"pointer"}} onClick={()=>removeSubItem(si.id)}>삭제</button>
+                </div>
+                <div style={{display:"flex",gap:6}}>
+                  <input style={{...inp,flex:2}} placeholder="MPN" value={si.mpn} onChange={e=>updateSubItem(si.id,"mpn",e.target.value)}/>
+                  <input style={{...inp,flex:4}} placeholder="품목명" value={si.itemName} onChange={e=>updateSubItem(si.id,"itemName",e.target.value)}/>
+                  <input style={{...inp,flex:1,textAlign:"center"}} type="number" min="1" placeholder="수량" value={si.qty} onChange={e=>updateSubItem(si.id,"qty",+e.target.value)}/>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{display:"flex",gap:10,justifyContent:"flex-end",paddingTop:12,marginTop:4,borderTop:"1px solid #F2F4F6"}}>
+            <button style={{border:"1px solid #E5E8EB",background:"#fff",color:"#8B95A1",borderRadius:10,padding:"10px 22px",fontSize:14,fontWeight:600,cursor:"pointer"}} onClick={onClose}>취소</button>
+            <button style={{border:"none",background:"#0D9488",color:"#fff",borderRadius:10,padding:"10px 28px",fontSize:14,fontWeight:700,cursor:"pointer"}} onClick={handleSave}>저장</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════ 상세 모달 ══════════════ */
+function DetailModal({row, onClose}){
+  const del=calcDelivery(row);
+  const subItems=row.subItems||[];
+  const totalQty=(row.qty||0)+subItems.reduce((s,i)=>s+(+i.qty||0),0);
+  const invoiceDisplay=(()=>{
+    const batchInvs=(row.deliveries||[]).filter(d=>d.invoiceDate||d.invoiceMemo);
+    if(batchInvs.length>0){
+      return batchInvs.map((d,i)=>{
+        const prefix=batchInvs.length>1?`배치${i+1} `:"";
+        if(d.invoiceDate){const[,mo,dd]=d.invoiceDate.split("-");const dl=`${parseInt(mo)}/${parseInt(dd)} 발행`;return d.invoiceMemo?`${prefix}${dl} · ${d.invoiceMemo}`:`${prefix}${dl}`;}
+        return `${prefix}${d.invoiceMemo}`;
+      }).join("  /  ");
+    }
+    const d=row.invoiceDate;
+    const m=row.invoice;
+    if(d){const[,mo,dd]=d.split("-");const label=`${parseInt(mo)}/${parseInt(dd)} 발행`;return m?`${label} · ${m}`:label;}
+    return m||"-";
+  })();
+  const orderDateDisplay=(()=>{
+    const d=row.orderDate; const m=row.orderDateMemo;
+    const isDate=d&&/^\d{4}-\d{2}-\d{2}$/.test(d);
+    const dateStr=isDate?d:(!m?d:"");
+    if(dateStr&&m) return `${dateStr} · ${m}`;
+    return dateStr||m||"-";
+  })();
+  const hasBatchInvoice=(row.deliveries||[]).some(d=>d.invoiceDate||d.invoiceMemo);
+  const isFullyDone=del.type==="done"&&(hasBatchInvoice||row.invoiceDate||row.invoice);
+  const deliveryDates=(row.deliveries||[]).filter(d=>d.status==="완료"&&d.date).map(d=>{const[,m,dd]=d.date.split("-");return `${parseInt(m)}/${parseInt(dd)}`;}).join(", ");
+  const pairs=[["매출처",row.customer],["구분",row.category],["견적일",row.quoteDate],["수발주일",orderDateDisplay],["발주 확인",row.orderStatus||"-"],
+    ...(isFullyDone&&deliveryDates?[["납품 날짜",deliveryDates]]:[]),
+    ["계산서",invoiceDisplay],["특이사항",row.notes||"-"]];
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.35)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(12px)"}} onClick={onClose}>
+      <div style={{background:"rgba(255,255,255,0.88)",backdropFilter:"blur(24px) saturate(160%)",WebkitBackdropFilter:"blur(24px) saturate(160%)",borderRadius:20,width:"min(560px,96vw)",maxHeight:"88vh",overflowY:"auto",boxShadow:"0 16px 56px rgba(0,0,0,0.18),inset 0 1px 0 rgba(255,255,255,0.9)",border:"1px solid rgba(255,255,255,0.6)"}} onClick={e=>e.stopPropagation()}>
+        <div style={{background:"#111218",padding:"20px 24px",borderRadius:"20px 20px 0 0",color:"#fff"}}>
+          <div style={{fontSize:14,fontWeight:800,marginBottom:4}}>🔍 발주 상세</div>
+          <div style={{fontSize:12,opacity:0.85}}>{row.itemName}{subItems.length>0&&` 외 ${subItems.length}종`} · 총 {totalQty.toLocaleString()}개</div>
+        </div>
+        <div style={{padding:"20px 24px"}}>
+          <div style={{background:"#F0FDFA",borderRadius:12,padding:14,marginBottom:16}}>
+            <div style={{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:6}}>
+              <span style={{color:"#8B95A1"}}>납품 진행률</span>
+              <span style={{fontWeight:700,color:del.color}}>{del.label}</span>
+            </div>
+            <div style={{height:8,background:"#E5E8EB",borderRadius:4,overflow:"hidden"}}>
+              <div style={{height:"100%",width:`${del.pct}%`,background:"linear-gradient(90deg,#0D9488,#00B252)",borderRadius:4}}/>
+            </div>
+          </div>
+
+          {/* 품목 목록 */}
+          <div style={{marginBottom:16}}>
+            <div style={{fontSize:12,fontWeight:700,color:"#8B95A1",marginBottom:8}}>📦 품목 목록</div>
+            <div style={{border:"1.5px solid #E5E8EB",borderRadius:12,overflow:"hidden"}}>
+              <div style={{display:"grid",gridTemplateColumns:"120px 1fr 60px",background:"#F2F4F6",padding:"8px 12px",fontSize:11,fontWeight:700,color:"#8B95A1"}}>
+                <span>MPN</span><span>품목명</span><span style={{textAlign:"right"}}>수량</span>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"120px 1fr 60px",padding:"10px 12px",fontSize:12,borderTop:"1px solid #F2F4F6",background:"#fff"}}>
+                <span style={{color:"#0D9488",fontWeight:700,fontFamily:"monospace",fontSize:11}}>{row.mpn}</span>
+                <span style={{color:"#191F28"}}>{row.itemName}</span>
+                <span style={{textAlign:"right",fontWeight:700}}>{(row.qty||0).toLocaleString()}</span>
+              </div>
+              {subItems.map((si,i)=>(
+                <div key={i} style={{display:"grid",gridTemplateColumns:"120px 1fr 60px",padding:"10px 12px",fontSize:12,borderTop:"1px solid #F2F4F6",background:i%2===0?"#F5FFFE":"#fff"}}>
+                  <span style={{color:"#14B8A6",fontWeight:700,fontFamily:"monospace",fontSize:11}}>{si.mpn}</span>
+                  <span style={{color:"#191F28"}}>{si.itemName}</span>
+                  <span style={{textAlign:"right",fontWeight:700}}>{(+si.qty||0).toLocaleString()}</span>
+                </div>
+              ))}
+              {subItems.length>0&&(
+                <div style={{display:"grid",gridTemplateColumns:"120px 1fr 60px",padding:"8px 12px",fontSize:12,borderTop:"1.5px solid #99F6E4",background:"#F0FDFA",fontWeight:700}}>
+                  <span style={{color:"#0D9488",gridColumn:"span 2"}}>합계</span>
+                  <span style={{textAlign:"right",color:"#0D9488"}}>{totalQty.toLocaleString()}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {pairs.map(([k,v])=>(
+            <div key={k} style={{display:"flex",borderBottom:"1px solid #F2F4F6",padding:"10px 0",gap:12}}>
+              <div style={{width:90,fontSize:12,fontWeight:600,color:"#8B95A1",flexShrink:0}}>{k}</div>
+              <div style={{fontSize:13,color:"#191F28",flex:1,wordBreak:"break-all"}}>{v}</div>
+            </div>
+          ))}
+          <div style={{paddingTop:16,textAlign:"right"}}>
+            <button style={{border:"none",background:"#0D9488",color:"#fff",borderRadius:10,padding:"10px 28px",fontSize:14,fontWeight:700,cursor:"pointer"}} onClick={onClose}>닫기</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════ 엑셀 가져오기 모달 ══════════════ */
+function ImportModal({onClose, onImport}){
+  const [step,setStep]=useState(1);
+  const [parsed,setParsed]=useState(null);
+  const [quoteFile,setQuoteFile]=useState(null);
+  const [mapping,setMapping]=useState({customer:"",quoteDate:"",orderDate:"",orderDateMemo:"",orderStatus:"발주 완료 및 대기"});
+  const [itemCategories,setItemCategories]=useState([]);
+  const fileRef=useRef();
+  const [dragging,setDragging]=useState(false);
+
+  function processFile(file){
+    setQuoteFile(file);
+    const reader=new FileReader();
+    reader.onload=e=>{
+      try{
+        const wb=XLSX.read(e.target.result,{type:"array"});
+        const ws=wb.Sheets[wb.SheetNames[0]];
+        const rawRows=XLSX.utils.sheet_to_json(ws,{header:1,defval:""});
+        const result=parseQuotationExcel(rawRows);
+        setParsed(result);
+        if(result.customer){
+          const matched=CUSTOMERS.find(c=>c.includes(result.customer)||result.customer.includes(c.split("(")[0]));
+          setMapping(m=>({...m,customer:matched||result.customer}));
+        }
+        if(result.quoteDate) setMapping(m=>({...m,quoteDate:result.quoteDate}));
+        setItemCategories((result.items||[]).map(()=>"Mac"));
+        setStep(2);
+      }catch(err){alert("파일 파싱 오류: "+err.message);}
+    };
+    reader.readAsArrayBuffer(file);
+  }
+  function handleDrop(e){
+    e.preventDefault(); setDragging(false);
+    const file=e.dataTransfer.files[0];
+    if(file) processFile(file);
+  }
+  function doImport(){
+    if(!parsed?.items?.length){alert("가져올 항목이 없습니다."); return;}
+    const baseFields={customer:mapping.customer||CUSTOMERS[0],quoteDate:mapping.quoteDate||new Date().toISOString().slice(0,10),orderDate:mapping.orderDate,orderDateMemo:mapping.orderDateMemo||"",orderStatus:mapping.orderStatus};
+    // 품목별 LOB 붙이기
+    const itemsWithCat=parsed.items.map((it,i)=>({...it,category:itemCategories[i]||"Mac"}));
+    // LOB별 그룹핑
+    const groups={};
+    itemsWithCat.forEach(it=>{
+      const cat=it.category;
+      if(!groups[cat]) groups[cat]=[];
+      groups[cat].push(it);
+    });
+    const orders=Object.entries(groups).map(([cat,items])=>{
+      const [first,...rest]=items;
+      return{
+        ...emptyForm(),...first,...baseFields,
+        category:cat,
+        subItems:rest.map((si,i)=>({id:100+i,mpn:si.mpn||"",itemName:si.itemName||"",qty:si.qty||1})),
+      };
+    });
+    onImport(orders, quoteFile);
+    onClose();
+  }
+  const inp={border:"1.5px solid #E5E8EB",borderRadius:8,padding:"7px 10px",fontSize:13,outline:"none",width:"100%"};
+  const lbl={fontSize:11,fontWeight:600,color:"#8B95A1",marginBottom:4,display:"block"};
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.35)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(12px)"}} onClick={onClose}>
+      <div style={{background:"rgba(255,255,255,0.88)",backdropFilter:"blur(24px) saturate(160%)",WebkitBackdropFilter:"blur(24px) saturate(160%)",borderRadius:20,width:"min(580px,96vw)",maxHeight:"85vh",overflowY:"auto",boxShadow:"0 16px 56px rgba(0,0,0,0.18),inset 0 1px 0 rgba(255,255,255,0.9)",border:"1px solid rgba(255,255,255,0.6)"}} onClick={e=>e.stopPropagation()}>
+        <div style={{background:"#111218",padding:"20px 24px",borderRadius:"20px 20px 0 0",color:"#fff"}}>
+          <div style={{fontSize:16,fontWeight:800}}>📂 견적서 엑셀 가져오기</div>
+          <div style={{fontSize:12,opacity:0.8,marginTop:4}}>단계 {step} / 2 — {step===1?"파일 선택":"매핑 확인 및 가져오기"}</div>
+        </div>
+        <div style={{padding:"20px 24px"}}>
+          {step===1&&(
+            <>
+              <div style={{border:`2px dashed ${dragging?"#0D9488":"#99F6E4"}`,borderRadius:16,padding:"40px 20px",textAlign:"center",background:dragging?"#F0FDFA":"#F0FDFA",cursor:"pointer",transition:"all 0.2s"}}
+                onClick={()=>fileRef.current.click()} onDragOver={e=>{e.preventDefault();setDragging(true);}} onDragLeave={()=>setDragging(false)} onDrop={handleDrop}>
+                <div style={{fontSize:36,marginBottom:12}}>📎</div>
+                <div style={{fontSize:15,fontWeight:700,color:"#191F28",marginBottom:6}}>파일을 드래그하거나 클릭하세요</div>
+                <div style={{fontSize:12,color:"#8B95A1"}}>Excel 견적서 파일 (.xlsx, .xls)</div>
+              </div>
+              <input ref={fileRef} type="file" accept=".xlsx,.xls" style={{display:"none"}} onChange={e=>{if(e.target.files[0]) processFile(e.target.files[0]);}}/>
+            </>
+          )}
+          {step===2&&parsed&&(
+            <>
+              <div style={{background:"#F0FDFA",borderRadius:12,padding:14,marginBottom:16}}>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+                  <div style={{fontSize:13,fontWeight:700}}>파싱 결과</div>
+                  <span style={{fontSize:11,background:"#F0FDFA",color:"#0D9488",borderRadius:20,padding:"2px 10px",fontWeight:700}}>
+                    {parsed.items.length === 1 ? "1개 품목" : `${parsed.items.length}개 품목 → 1건으로 묶음`}
+                  </span>
+                </div>
+                <div style={{fontSize:12,color:"#8B95A1",marginBottom:6}}>
+                  {parsed.items.length > 1
+                    ? `첫 번째 품목이 대표 항목이 되고 나머지 ${parsed.items.length-1}개는 추가 품목으로 한 건에 묶여 등록됩니다.`
+                    : "1개 품목이 단일 발주 건으로 등록됩니다."}
+                </div>
+                <div style={{maxHeight:140,overflowY:"auto",marginTop:8}}>
+                  {parsed.items.map((it,i)=>(
+                    <div key={i} style={{display:"flex",justifyContent:"space-between",fontSize:12,padding:"5px 0",borderBottom:"1px solid #F2F4F6"}}>
+                      <span style={{color:"#0D9488",fontWeight:600,width:90,flexShrink:0}}>{it.mpn}</span>
+                      <span style={{flex:1,color:"#191F28",margin:"0 8px"}}>{it.itemName}</span>
+                      <span style={{color:"#8B95A1",flexShrink:0}}>{it.qty}개</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {/* 품목별 LOB 지정 */}
+              <div style={{marginBottom:14}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                  <label style={{...lbl,marginBottom:0}}>품목별 LOB 지정</label>
+                  <div style={{display:"flex",gap:4}}>
+                    {CATEGORIES.map(cat=>(
+                      <button key={cat} onClick={()=>setItemCategories(itemCategories.map(()=>cat))}
+                        style={{fontSize:10,padding:"2px 8px",borderRadius:12,border:"1px solid #99F6E4",background:"#F0FDFA",color:"#0D9488",cursor:"pointer",fontWeight:600}}>
+                        전체 {cat}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div style={{border:"1.5px solid #E5E8EB",borderRadius:10,overflow:"hidden"}}>
+                  <div style={{display:"grid",gridTemplateColumns:"90px 1fr 80px",background:"#F2F4F6",padding:"7px 10px",fontSize:11,fontWeight:700,color:"#8B95A1"}}>
+                    <span>MPN</span><span>품목명</span><span>LOB</span>
+                  </div>
+                  {parsed.items.map((it,i)=>(
+                    <div key={i} style={{display:"grid",gridTemplateColumns:"90px 1fr 80px",padding:"7px 10px",fontSize:12,borderTop:"1px solid #F2F4F6",alignItems:"center"}}>
+                      <span style={{color:"#0D9488",fontWeight:600,fontFamily:"monospace",fontSize:11,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{it.mpn}</span>
+                      <span style={{color:"#191F28",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",paddingRight:8}}>{it.itemName}</span>
+                      <select value={itemCategories[i]||"Mac"} onChange={e=>{const c=[...itemCategories];c[i]=e.target.value;setItemCategories(c);}}
+                        style={{border:"1.5px solid #99F6E4",borderRadius:6,padding:"3px 4px",fontSize:11,outline:"none",background:"#fff"}}>
+                        {CATEGORIES.map(c=><option key={c}>{c}</option>)}
+                      </select>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 14px"}}>
+                <div style={{marginBottom:12}}>
+                  <label style={lbl}>매출처</label>
+                  <select style={inp} value={mapping.customer} onChange={e=>setMapping(m=>({...m,customer:e.target.value}))}><option value="">-- 선택 --</option>{CUSTOMERS.map(c=><option key={c}>{c}</option>)}</select>
+                </div>
+                <div style={{marginBottom:12}}>
+                  <label style={lbl}>견적일 {parsed.quoteDate&&<span style={{color:"#0D9488"}}>(자동: {parsed.quoteDate})</span>}</label>
+                  <input style={inp} type="date" value={mapping.quoteDate} onChange={e=>{setMapping(m=>({...m,quoteDate:e.target.value}));e.target.blur();}}/>
+                </div>
+                <div style={{marginBottom:12}}>
+                  <label style={lbl}>수발주일 (선택)</label>
+                  <input style={inp} type="date" value={mapping.orderDate||""} onChange={e=>{setMapping(m=>({...m,orderDate:e.target.value}));e.target.blur();}}/>
+                </div>
+                <div style={{marginBottom:12}}>
+                  <label style={lbl}>수발주 메모 (선택)</label>
+                  <input style={inp} value={mapping.orderDateMemo||""} onChange={e=>setMapping(m=>({...m,orderDateMemo:e.target.value}))} placeholder="백록, DPP, 재고 보유 등"/>
+                </div>
+              </div>
+              <div style={{marginBottom:12}}>
+                <label style={lbl}>발주 상태</label>
+                <select style={inp} value={mapping.orderStatus} onChange={e=>setMapping(m=>({...m,orderStatus:e.target.value}))}>{ORDER_STATUS_OPTIONS.map(o=><option key={o}>{o}</option>)}</select>
+              </div>
+              <div style={{display:"flex",gap:10,justifyContent:"flex-end",paddingTop:8,borderTop:"1px solid #F2F4F6"}}>
+                <button style={{border:"1px solid #E5E8EB",background:"#fff",color:"#8B95A1",borderRadius:10,padding:"10px 22px",fontSize:14,fontWeight:600,cursor:"pointer"}} onClick={()=>setStep(1)}>← 다시</button>
+                <button style={{border:"none",background:"#0D9488",color:"#fff",borderRadius:10,padding:"10px 28px",fontSize:14,fontWeight:700,cursor:"pointer"}} onClick={doImport}>가져오기</button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════ 파일 첨부 모달 ══════════════ */
+function AttachModal({row, attachments, onClose, onSave}){
+  // 모든 슬롯 배열로 통일, 구버전 단일 객체 호환
+  const toArr=v=>Array.isArray(v)?v:(v?[v]:[]);
+  const initAtt=(src)=>{
+    if(!src) return {quote:[],serial:[],inspect:[],serialSkipped:false};
+    return {...src, quote:toArr(src.quote), serial:toArr(src.serial), inspect:toArr(src.inspect)};
+  };
+  const [att, setAtt]=useState(()=>initAtt(attachments));
+  const fileRefs={quote:useRef(),serial:useRef(),inspect:useRef()};
+
+  const slots=[
+    {key:"quote",  label:"견적서",    icon:"📋", accept:".xlsx,.xls,.pdf", hint:"Excel / PDF · 여러 개 추가 가능"},
+    {key:"serial", label:"시리얼 파일", icon:"🔢", accept:".xlsx,.xls,.pdf", hint:"Excel / PDF · 여러 개 추가 가능", canSkip:true},
+    {key:"inspect",label:"검수확인서", icon:"✅", accept:".pdf,.xlsx,.xls",  hint:"PDF / Excel · 여러 개 추가 가능"},
+  ];
+
+  function addFile(key,file){
+    const url=URL.createObjectURL(file);
+    setAtt(a=>({...a,[key]:[...a[key],{name:file.name,url,size:file.size}]}));
+  }
+  function removeFileAt(key,idx){
+    setAtt(a=>{
+      const next=[...a[key]];
+      if(next[idx]?.url) URL.revokeObjectURL(next[idx].url);
+      next.splice(idx,1);
+      return {...a,[key]:next};
+    });
+  }
+  function skipSerial(){ setAtt(a=>({...a,serialSkipped:true})); }
+  function undoSkipSerial(){ setAtt(a=>({...a,serialSkipped:false})); }
+
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.35)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(12px)"}} onClick={onClose}>
+      <div style={{background:"rgba(255,255,255,0.88)",backdropFilter:"blur(24px) saturate(160%)",WebkitBackdropFilter:"blur(24px) saturate(160%)",borderRadius:20,width:"min(500px,96vw)",maxHeight:"88vh",overflowY:"auto",boxShadow:"0 16px 56px rgba(0,0,0,0.18),inset 0 1px 0 rgba(255,255,255,0.9)",border:"1px solid rgba(255,255,255,0.6)"}} onClick={e=>e.stopPropagation()}>
+        <div style={{background:"#111218",padding:"20px 24px",borderRadius:"20px 20px 0 0",color:"#fff"}}>
+          <div style={{fontSize:16,fontWeight:800}}>📎 서류 첨부</div>
+          <div style={{fontSize:12,opacity:0.85,marginTop:4}}>{row.customer} · {row.itemName}</div>
+        </div>
+        <div style={{padding:"20px 24px"}}>
+          <div style={{background:"#FFF9E6",borderRadius:10,padding:"10px 14px",marginBottom:16,fontSize:12,color:"#996A00",border:"1px solid #FFE4A0"}}>
+            ⚠️ 첨부 파일은 현재 세션에서만 유지됩니다. 브라우저를 닫으면 초기화돼요.
+          </div>
+
+          {slots.map(({key,label,icon,accept,hint,canSkip})=>{
+            const files=att[key]||[];
+            const hasFiles=files.length>0;
+            const isSkipped=key==="serial"&&att.serialSkipped&&!hasFiles;
+            const borderColor=hasFiles?"#00B252":isSkipped?"#FF8C00":"#E5E8EB";
+            const bgColor=hasFiles?"#F0FAF4":isSkipped?"#FFF8F0":"#F5FFFE";
+            return(
+              <div key={key} style={{border:`1.5px solid ${borderColor}`,borderRadius:14,padding:"14px 16px",marginBottom:12,background:bgColor}}>
+                {/* 헤더 행 */}
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:(hasFiles||isSkipped)?10:0}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    <span style={{fontSize:20}}>{icon}</span>
+                    <div>
+                      <div style={{display:"flex",alignItems:"center",gap:6}}>
+                        <span style={{fontSize:13,fontWeight:700,color:isSkipped?"#996A00":"#191F28"}}>{label}</span>
+                        {hasFiles&&<span style={{fontSize:11,background:"#E6F9EE",color:"#00843D",borderRadius:10,padding:"1px 8px",fontWeight:700}}>{files.length}개</span>}
+                        {isSkipped&&<span style={{fontSize:11,fontWeight:600,color:"#FF8C00"}}>건너뜀</span>}
+                      </div>
+                      <div style={{fontSize:11,color:"#8B95A1"}}>{hint}</div>
+                    </div>
+                  </div>
+                  {isSkipped?(
+                    <button style={{border:"1px solid #FF8C00",background:"#FFF4E0",color:"#FF8C00",borderRadius:8,padding:"5px 12px",fontSize:12,fontWeight:600,cursor:"pointer"}} onClick={undoSkipSerial}>↩ 되돌리기</button>
+                  ):(
+                    <div style={{display:"flex",gap:6}}>
+                      <button style={{border:"1.5px solid #99F6E4",background:"#F0FDFA",color:"#0D9488",borderRadius:8,padding:"6px 14px",fontSize:12,fontWeight:600,cursor:"pointer"}}
+                        onClick={()=>{fileRefs[key].current.value="";fileRefs[key].current.click();}}>
+                        + {hasFiles?"추가":"첨부"}
+                      </button>
+                      {canSkip&&!hasFiles&&(
+                        <button style={{border:"1.5px solid #E5C97E",background:"#FFF9E6",color:"#996A00",borderRadius:8,padding:"6px 12px",fontSize:12,fontWeight:600,cursor:"pointer"}} onClick={skipSerial} title="파일 없이 건너뜀 처리">건너뜀</button>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* 파일 목록 */}
+                {hasFiles&&(
+                  <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                    {files.map((f,i)=>(
+                      <div key={i} style={{display:"flex",alignItems:"center",gap:6,background:"#fff",borderRadius:8,padding:"7px 10px",border:"1px solid #D9F0E3",fontSize:12}}>
+                        <span style={{color:"#00B252",fontWeight:700,flexShrink:0}}>✓</span>
+                        <span style={{flex:1,color:"#191F28",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.name}</span>
+                        <span style={{color:"#8B95A1",flexShrink:0,fontSize:11}}>{(f.size/1024).toFixed(1)} KB</span>
+                        <a href={f.url} target="_blank" style={{border:"1px solid #00B252",background:"#E6F9EE",color:"#00B252",borderRadius:6,padding:"3px 9px",fontSize:11,fontWeight:600,cursor:"pointer",textDecoration:"none",flexShrink:0}}>열기</a>
+                        <button style={{border:"1px solid #F04452",background:"#FFE9EC",color:"#F04452",borderRadius:6,padding:"3px 8px",fontSize:11,fontWeight:600,cursor:"pointer",flexShrink:0}} onClick={()=>removeFileAt(key,i)}>삭제</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {isSkipped&&(
+                  <div style={{background:"#FFF4E0",borderRadius:8,padding:"8px 10px",border:"1px solid #FFD080",fontSize:12}}>
+                    <span style={{color:"#FF8C00",fontWeight:600}}>— </span>
+                    <span style={{color:"#996A00"}}>시리얼 파일 없이 진행하는 건으로 처리됩니다.</span>
+                  </div>
+                )}
+                <input ref={fileRefs[key]} type="file" accept={accept} style={{display:"none"}}
+                  onChange={e=>{if(e.target.files[0]) addFile(key,e.target.files[0]);}}/>
+              </div>
+            );
+          })}
+
+          <div style={{display:"flex",gap:10,justifyContent:"flex-end",paddingTop:8,borderTop:"1px solid #F2F4F6"}}>
+            <button style={{border:"1px solid #E5E8EB",background:"#fff",color:"#8B95A1",borderRadius:10,padding:"10px 22px",fontSize:14,fontWeight:600,cursor:"pointer"}} onClick={onClose}>취소</button>
+            <button style={{border:"none",background:"#0D9488",color:"#fff",borderRadius:10,padding:"10px 28px",fontSize:14,fontWeight:700,cursor:"pointer"}} onClick={()=>onSave(att)}>저장</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════ 토스트 알림 ══════════════ */
+function ToastContainer({toasts}){
+  return(
+    <div style={{position:"fixed",bottom:28,right:28,zIndex:9999,display:"flex",flexDirection:"column",gap:8,pointerEvents:"none"}}>
+      {toasts.map(t=>(
+        <div key={t.id} style={{
+          display:"flex",alignItems:"center",gap:10,
+          background:t.type==="error"?"rgba(239,68,68,0.92)":"rgba(13,148,136,0.92)",
+          backdropFilter:"blur(16px) saturate(160%)",
+          WebkitBackdropFilter:"blur(16px) saturate(160%)",
+          color:"#fff",borderRadius:12,padding:"12px 18px",
+          fontSize:13,fontWeight:500,
+          boxShadow:"0 8px 32px rgba(0,0,0,0.18),inset 0 1px 0 rgba(255,255,255,0.15)",
+          border:"1px solid rgba(255,255,255,0.18)",
+          animation:"toastIn 0.25s ease",
+          minWidth:220,maxWidth:320,
+        }}>
+          <span style={{fontSize:15}}>{t.type==="error"?"🗑":"✓"}</span>
+          <span>{t.msg}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ══════════════ 통계 탭 ══════════════ */
+function StatsTab({orders,view}){
+
+  const palette=["#0D9488","#14B8A6","#7C3AED","#6366F1","#F59E0B","#EF4444","#10B981","#3B82F6","#EC4899","#8B5CF6"];
+
+  const byCustomer=useMemo(()=>{
+    const m={};
+    orders.forEach(o=>{const k=o.customer||"미지정";m[k]=(m[k]||0)+1;});
+    return Object.entries(m).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  },[orders]);
+
+  const byCategory=useMemo(()=>{
+    const m={};
+    orders.forEach(o=>{const k=o.category||"미지정";m[k]=(m[k]||0)+1;});
+    return Object.entries(m).sort((a,b)=>b[1]-a[1]);
+  },[orders]);
+
+  const byMonth=useMemo(()=>{
+    const m={};
+    orders.forEach(o=>{
+      const d=o.quoteDate||o.orderDate||"";
+      if(!d) return;
+      const ym=d.slice(0,7);
+      m[ym]=(m[ym]||0)+1;
+    });
+    return Object.entries(m).sort((a,b)=>a[0].localeCompare(b[0])).slice(-12);
+  },[orders]);
+
+  const datasets={customer:byCustomer,category:byCategory,monthly:byMonth};
+  const data=datasets[view]||[];
+  const max=data.reduce((m,d)=>Math.max(m,d[1]),0)||1;
+  const total=data.reduce((s,d)=>s+d[1],0);
+
+  const labelMap={"customer":"거래처별","category":"카테고리별","monthly":"월별 추이"};
+
+  return(
+    <div style={{padding:"0 0 32px"}}>
+      {/* 차트 카드 */}
+      <div style={{background:"rgba(255,255,255,0.72)",backdropFilter:"blur(20px) saturate(160%)",WebkitBackdropFilter:"blur(20px) saturate(160%)",borderRadius:16,padding:"24px 28px",boxShadow:"0 4px 24px rgba(0,0,0,0.06),inset 0 1px 0 rgba(255,255,255,0.85)",border:"1px solid rgba(255,255,255,0.55)"}}>
+        <div style={{fontSize:11,fontWeight:600,color:"#9CA3AF",letterSpacing:"0.07em",textTransform:"uppercase",marginBottom:20}}>
+          {labelMap[view]||""} — 총 {total}건
+        </div>
+
+        {data.length===0?(
+          <div style={{textAlign:"center",padding:"48px 0",color:"#C4C6CC",fontSize:13}}>데이터가 없습니다.</div>
+        ):(
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            {data.map(([label,count],i)=>{
+              const pct=Math.round(count/total*100);
+              const color=palette[i%palette.length];
+              return(
+                <div key={label} style={{display:"flex",alignItems:"center",gap:12}}>
+                  <div style={{width:130,fontSize:12,color:"#374151",fontWeight:500,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",flexShrink:0}} title={label}>{label}</div>
+                  <div style={{flex:1,height:28,background:"rgba(0,0,0,0.04)",borderRadius:6,overflow:"hidden",position:"relative"}}>
+                    <div style={{
+                      height:"100%",width:`${(count/max)*100}%`,
+                      background:`linear-gradient(90deg,${color}cc,${color})`,
+                      borderRadius:6,transition:"width 0.4s ease",
+                      display:"flex",alignItems:"center",paddingLeft:8,boxSizing:"border-box",
+                      minWidth:count>0?24:0,
+                    }}>
+                      {count/max>0.15&&<span style={{fontSize:11,fontWeight:700,color:"#fff"}}>{count}</span>}
+                    </div>
+                    {count/max<=0.15&&count>0&&<span style={{position:"absolute",left:`${(count/max)*100+1}%`,top:"50%",transform:"translateY(-50%)",fontSize:11,fontWeight:700,color:"#374151"}}>{count}</span>}
+                  </div>
+                  <div style={{width:36,fontSize:11,color:"#9CA3AF",textAlign:"right",flexShrink:0}}>{pct}%</div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════ 매출 현황 탭 ══════════════ */
+function SalesTab({orders,view,setView}){
+  const [lobFilter,setLobFilter]=useState("전체");
+  const [yearFilter,setYearFilter]=useState("전체");
+  const [monthFilter,setMonthFilter]=useState("전체");
+  const [weekModal,setWeekModal]=useState(null);
+  const chartRef=useRef(null);
+  const chartInstanceRef=useRef(null);
+
+  const active=useMemo(()=>orders.filter(o=>!o.orderStatus?.includes("취소")),[orders]);
+
+  const enriched=useMemo(()=>active.map(o=>{
+    const subQty=(o.subItems||[]).reduce((s,i)=>s+(+i.qty||0),0);
+    const qty=(o.qty||0)+subQty;
+    const pi=getPriceInfo(o.mpn,o.itemName);
+    return{...o,_qty:qty,_pi:pi,_rev:pi.matched?pi.svo*qty:0,_gp:pi.matched?pi.gp*qty:0};
+  }),[active]);
+
+  // 연도/월 목록 추출
+  const years=useMemo(()=>{
+    const s=new Set(enriched.map(o=>String(o.quoteDate||"").slice(0,4)).filter(y=>y.match(/^\d{4}$/)));
+    return["전체",...Array.from(s).sort()];
+  },[enriched]);
+  const months=useMemo(()=>{
+    const base=yearFilter==="전체"?enriched:enriched.filter(o=>String(o.quoteDate||"").startsWith(yearFilter));
+    const s=new Set(base.map(o=>String(o.quoteDate||"").slice(5,7)).filter(m=>m.match(/^\d{2}$/)));
+    return["전체",...Array.from(s).sort()];
+  },[enriched,yearFilter]);
+
+  const filtered=useMemo(()=>{
+    let d=lobFilter==="전체"?enriched:enriched.filter(o=>o.category===lobFilter);
+    if(yearFilter!=="전체") d=d.filter(o=>String(o.quoteDate||"").startsWith(yearFilter));
+    if(monthFilter!=="전체") d=d.filter(o=>String(o.quoteDate||"").slice(5,7)===monthFilter);
+    return d;
+  },[enriched,lobFilter,yearFilter,monthFilter]);
+
+  const totals=useMemo(()=>({
+    cnt:filtered.length,
+    qty:filtered.reduce((s,o)=>s+o._qty,0),
+    rev:filtered.reduce((s,o)=>s+o._rev,0),
+    gp:filtered.reduce((s,o)=>s+o._gp,0),
+    unpriced:filtered.filter(o=>!o._pi.matched).length,
+  }),[filtered]);
+
+  const tableData=useMemo(()=>{
+    const map={};
+    filtered.forEach(o=>{
+      let key;
+      if(view==="month") key=String(o.quoteDate||"").slice(0,7)||"날짜없음";
+      else if(view==="week") key=getISOWeekLabel(o.quoteDate)||"날짜없음";
+      else key=o.category||"기타";
+      if(!map[key]) map[key]={key,cnt:0,qty:0,rev:0,gp:0};
+      map[key].cnt++; map[key].qty+=o._qty; map[key].rev+=o._rev; map[key].gp+=o._gp;
+    });
+    // 월별: 선택 연도(또는 현재 연도) 1~12월 모두 채움
+    if(view==="month"){
+      const yr=yearFilter!=="전체"?yearFilter:String(new Date().getFullYear());
+      for(let m=1;m<=12;m++){
+        const key=`${yr}-${String(m).padStart(2,"0")}`;
+        if(!map[key]) map[key]={key,cnt:0,qty:0,rev:0,gp:0};
+      }
+    }
+    // LOB별: 전체 LOB 항상 표시
+    if(view==="lob"){
+      ["Mac","iPad","ACC","DISP"].forEach(lob=>{
+        if(!map[lob]) map[lob]={key:lob,cnt:0,qty:0,rev:0,gp:0};
+      });
+    }
+    return Object.values(map).sort((a,b)=>a.key.localeCompare(b.key));
+  },[filtered,view,yearFilter]);
+
+  const fmtAxis=(v)=>{
+    if(v>=100000000) return (v/100000000).toFixed(0)+"억";
+    if(v>=10000000)  return (v/10000000).toFixed(0)+"천만";
+    if(v>=10000)     return Math.round(v/10000)+"만";
+    return v.toLocaleString();
+  };
+
+  useEffect(()=>{
+    const timeout=setTimeout(()=>{
+      if(!chartRef.current) return;
+      if(chartInstanceRef.current){ chartInstanceRef.current.destroy(); chartInstanceRef.current=null; }
+      const ctx=chartRef.current.getContext("2d");
+      chartInstanceRef.current=new Chart(ctx,{
+        type:"bar",
+        plugins:[ChartDataLabels],
+        data:{
+          labels:tableData.map(r=>r.key),
+          datasets:[
+            {label:"매출금액",data:tableData.map(r=>r.rev),backgroundColor:"rgba(13,148,136,0.75)",borderColor:"#0D9488",borderWidth:1.5,borderRadius:6,borderSkipped:false},
+            {label:"GP",data:tableData.map(r=>r.gp),backgroundColor:"rgba(255,140,0,0.60)",borderColor:"#FF8C00",borderWidth:1.5,borderRadius:6,borderSkipped:false},
+          ],
+        },
+        options:{
+          responsive:true,maintainAspectRatio:false,
+          plugins:{
+            legend:{position:"top",labels:{font:{family:"Inter, sans-serif",size:12},color:"#374151",boxWidth:12,boxHeight:12}},
+            tooltip:{callbacks:{label:(c)=>`${c.dataset.label}: ${fmtAxis(c.raw)}`}},
+            datalabels:{
+              anchor:"end",align:"top",offset:2,
+              formatter:(v)=>v>0?fmtAxis(v):"",
+              font:{size:10,weight:"600",family:"Inter, sans-serif"},
+              color:(ctx)=>ctx.datasetIndex===0?"#0D9488":"#FF8C00",
+              display:(ctx)=>ctx.dataset.data[ctx.dataIndex]>0,
+            },
+          },
+          scales:{
+            x:{ticks:{font:{family:"Inter, sans-serif",size:11},color:"#6B7280"},grid:{display:false}},
+            y:{ticks:{font:{family:"Inter, sans-serif",size:11},color:"#6B7280",callback:fmtAxis},grid:{color:"rgba(0,0,0,0.05)"},border:{display:false}},
+          },
+          layout:{padding:{top:20}},
+        },
+      });
+    },50);
+    return()=>{
+      clearTimeout(timeout);
+      if(chartInstanceRef.current){ chartInstanceRef.current.destroy(); chartInstanceRef.current=null; }
+    };
+  },[tableData]);
+
+  const W=(n)=>{
+    if(n==null||isNaN(n)) return "-";
+    const abs=Math.abs(n);
+    if(abs>=100000000) return (n/100000000).toFixed(1).replace(/\.0$/,"")+"억";
+    if(abs>=10000000)  return (n/10000000).toFixed(1).replace(/\.0$/,"")+"천만";
+    if(abs>=10000)     return Math.round(n/10000)+"만";
+    return n.toLocaleString()+"원";
+  };
+  const lobs=["전체","Mac","iPad","ACC","DISP"];
+  const viewBtns=[{k:"month",l:"월별"},{k:"week",l:"주별"},{k:"lob",l:"LOB별"}];
+  const S={card:{background:"#fff",borderRadius:16,padding:"16px 18px",boxShadow:"0 2px 8px rgba(13,148,136,0.06)",border:"1.5px solid #E5E8EB"},
+    th:{padding:"10px 12px",fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.9)",textAlign:"left",whiteSpace:"nowrap"},
+    td:{padding:"10px 12px",fontSize:12,color:"#191F28",borderBottom:"1px solid #F5F7FA"},};
+
+  const chipBtn=(active,onClick,label)=>(
+    <button onClick={onClick} style={{border:`1.5px solid ${active?"#0D9488":"#E5E8EB"}`,background:active?"#0D9488":"#fff",color:active?"#fff":"#8B95A1",borderRadius:20,padding:"5px 12px",fontSize:12,fontWeight:active?700:400,cursor:"pointer"}}>{label}</button>
+  );
+
+  return(
+    <div style={{paddingBottom:32}}>
+      {/* 뷰 전환 + LOB 필터 */}
+      <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center",marginBottom:12}}>
+        <div style={{display:"flex",background:"#fff",borderRadius:10,border:"1.5px solid #E5E8EB",overflow:"hidden"}}>
+          {viewBtns.map(({k,l})=>(
+            <button key={k} onClick={()=>setView(k)}
+              style={{border:"none",background:view===k?"#0D9488":"transparent",color:view===k?"#fff":"#8B95A1",padding:"7px 16px",fontSize:12,fontWeight:view===k?700:400,cursor:"pointer"}}>
+              {l}
+            </button>
+          ))}
+        </div>
+        <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+          {lobs.map(l=>chipBtn(lobFilter===l,()=>setLobFilter(l),l))}
+        </div>
+        {totals.unpriced>0&&<span style={{fontSize:11,color:"#FF8C00",background:"#FFF4E0",border:"1px solid #FFD080",borderRadius:20,padding:"4px 10px"}}>⚠️ 단가 미등록 {totals.unpriced}건 제외</span>}
+      </div>
+
+      {/* 기간 필터 — 월별/주별 */}
+      {view!=="lob"&&(
+        <div style={{background:"#fff",borderRadius:12,padding:"12px 16px",marginBottom:16,border:"1.5px solid #E5E8EB",display:"flex",gap:12,flexWrap:"wrap",alignItems:"center"}}>
+          <div style={{display:"flex",gap:5,alignItems:"center",flexWrap:"wrap"}}>
+            <span style={{fontSize:11,fontWeight:700,color:"#8B95A1",marginRight:4}}>연도</span>
+            {years.map(y=>chipBtn(yearFilter===y,()=>{setYearFilter(y);setMonthFilter("전체");},y==="전체"?"전체":y+"년"))}
+          </div>
+          {view==="week"&&(
+            <div style={{display:"flex",gap:5,alignItems:"center",flexWrap:"wrap",borderLeft:"1.5px solid #F2F4F6",paddingLeft:12}}>
+              <span style={{fontSize:11,fontWeight:700,color:"#8B95A1",marginRight:4}}>월</span>
+              {months.map(m=>chipBtn(monthFilter===m,()=>setMonthFilter(m),m==="전체"?"전체":m+"월"))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 요약 카드 */}
+      <div className="kpi-row">
+        {[
+          {label:"견적 건수",val:totals.cnt.toLocaleString()+"건",color:"#0D9488",icon:"📋"},
+          {label:"총 대수",val:totals.qty.toLocaleString()+"대",color:"#14B8A6",icon:"📦"},
+          {label:"매출금액(공급)",val:W(totals.rev),color:"#00B252",icon:"💰"},
+          {label:"매출총이익(GP)",val:W(totals.gp),color:totals.gp>=0?"#FF8C00":"#F04452",icon:"📈"},
+        ].map(c=>(
+          <div key={c.label} style={S.card}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+              <span style={{fontSize:11,color:"#8B95A1",fontWeight:600}}>{c.label}</span>
+              <span style={{fontSize:16}}>{c.icon}</span>
+            </div>
+            <div style={{fontSize:22,fontWeight:800,color:c.color}}>{c.val}</div>
+            {c.label.includes("GP")&&totals.rev>0&&<div style={{fontSize:10,color:"#8B95A1",marginTop:2}}>GP율 {(totals.gp/totals.rev*100).toFixed(2)}%</div>}
+          </div>
+        ))}
+      </div>
+
+      {/* 차트 */}
+      <div style={{background:"rgba(255,255,255,0.88)",backdropFilter:"blur(20px) saturate(160%)",WebkitBackdropFilter:"blur(20px) saturate(160%)",borderRadius:16,border:"1px solid rgba(255,255,255,0.55)",boxShadow:"0 4px 24px rgba(0,0,0,0.06)",padding:"24px 24px 16px",marginBottom:16}}>
+        <div style={{fontSize:13,fontWeight:700,color:"#374151",marginBottom:16}}>
+          {{month:"월별",week:"주별",lob:"LOB별"}[view]} 매출 현황
+        </div>
+        <div style={{height:320,position:"relative"}}>
+          <canvas ref={chartRef}/>
+        </div>
+      </div>
+
+      {/* 상세 테이블 */}
+      <div style={{background:"#fff",borderRadius:16,border:"1.5px solid #E5E8EB",overflow:"hidden",boxShadow:"0 2px 8px rgba(13,148,136,0.05)"}}>
+        <div style={{overflowX:"auto"}}>
+          <table style={{width:"100%",borderCollapse:"collapse",minWidth:600}}>
+            <thead style={{background:"#111218"}}>
+              <tr>
+                <th style={S.th}>{view==="month"?"월":{week:"주",lob:"LOB"}[view]}</th>
+                <th style={{...S.th,textAlign:"right"}}>건수</th>
+                <th style={{...S.th,textAlign:"right"}}>대수</th>
+                <th style={{...S.th,textAlign:"right"}}>매출금액(공급단가)</th>
+                <th style={{...S.th,textAlign:"right"}}>매입단가합계</th>
+                <th style={{...S.th,textAlign:"right"}}>GP</th>
+                <th style={{...S.th,textAlign:"right"}}>GP율</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tableData.length===0&&<tr><td colSpan={7} style={{textAlign:"center",padding:40,color:"#8B95A1"}}>데이터가 없습니다.</td></tr>}
+              {tableData.map((r,i)=>{
+                const buy=r.rev-(r.gp);
+                const gpRate=r.rev>0?(r.gp/r.rev*100):0;
+                const clickable=view==="week";
+                return(
+                  <tr key={r.key} onClick={clickable?()=>setWeekModal(r.key):undefined}
+                    style={{background:i%2===0?"#fff":"#F5FFFE",cursor:clickable?"pointer":"default",transition:"background 0.1s"}}
+                    onMouseEnter={e=>{if(clickable)e.currentTarget.style.background="#F0FDFA";}}
+                    onMouseLeave={e=>{if(clickable)e.currentTarget.style.background=i%2===0?"#fff":"#F5FFFE";}}>
+                    <td style={{...S.td,fontWeight:700,color:"#0D9488"}}>{r.key}{clickable&&<span style={{fontSize:10,color:"#8B95A1",marginLeft:6}}>↗</span>}</td>
+                    <td style={{...S.td,textAlign:"right"}}>{r.cnt}</td>
+                    <td style={{...S.td,textAlign:"right",fontWeight:600}}>{r.qty.toLocaleString()}</td>
+                    <td style={{...S.td,textAlign:"right",fontWeight:700,color:"#00B252"}}>{r.rev>0?W(r.rev):"-"}</td>
+                    <td style={{...S.td,textAlign:"right",color:"#8B95A1"}}>{buy>0?W(buy):"-"}</td>
+                    <td style={{...S.td,textAlign:"right",fontWeight:700,color:r.gp>=0?"#FF8C00":"#F04452"}}>{r.rev>0?W(r.gp):"-"}</td>
+                    <td style={{...S.td,textAlign:"right",color:"#8B95A1"}}>{r.rev>0?gpRate.toFixed(2)+"%":"-"}</td>
+                  </tr>
+                );
+              })}
+              {tableData.length>1&&(
+                <tr style={{background:"#F0FDFA",fontWeight:700}}>
+                  <td style={{...S.td,color:"#0D9488",fontWeight:800}}>합계</td>
+                  <td style={{...S.td,textAlign:"right",color:"#0D9488"}}>{totals.cnt}</td>
+                  <td style={{...S.td,textAlign:"right",color:"#0D9488"}}>{totals.qty.toLocaleString()}</td>
+                  <td style={{...S.td,textAlign:"right",color:"#00B252"}}>{W(totals.rev)}</td>
+                  <td style={{...S.td,textAlign:"right",color:"#8B95A1"}}>{W(totals.rev-totals.gp)}</td>
+                  <td style={{...S.td,textAlign:"right",color:"#FF8C00"}}>{W(totals.gp)}</td>
+                  <td style={{...S.td,textAlign:"right",color:"#8B95A1"}}>{totals.rev>0?(totals.gp/totals.rev*100).toFixed(2)+"%":"-"}</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* ── 주별 요약 모달 ── */}
+      {weekModal&&(()=>{
+        const wOrders=filtered.filter(o=>getISOWeekLabel(o.quoteDate)===weekModal);
+        const lobs=["Mac","iPad","ACC","DISP"];
+        const lobData=lobs.map(lob=>{
+          const rows=wOrders.filter(o=>o.category===lob);
+          return{lob,cnt:rows.length,qty:rows.reduce((s,o)=>s+o._qty,0),rev:rows.reduce((s,o)=>s+o._rev,0),gp:rows.reduce((s,o)=>s+o._gp,0)};
+        }).filter(l=>l.cnt>0);
+        const custMap={};
+        wOrders.forEach(o=>{if(!custMap[o.customer])custMap[o.customer]={cnt:0,qty:0,rev:0};custMap[o.customer].cnt++;custMap[o.customer].qty+=o._qty;custMap[o.customer].rev+=o._rev;});
+        const topCust=Object.entries(custMap).sort((a,b)=>b[1].rev-a[1].rev).slice(0,4);
+        const mpnMap={};
+        wOrders.forEach(o=>{if(!mpnMap[o.mpn])mpnMap[o.mpn]={name:o.itemName,qty:0};mpnMap[o.mpn].qty+=o._qty;});
+        const topMpn=Object.entries(mpnMap).sort((a,b)=>b[1].qty-a[1].qty).slice(0,5);
+        const wTot={cnt:wOrders.length,qty:wOrders.reduce((s,o)=>s+o._qty,0),rev:wOrders.reduce((s,o)=>s+o._rev,0),gp:wOrders.reduce((s,o)=>s+o._gp,0)};
+        const gpRate=wTot.rev>0?(wTot.gp/wTot.rev*100).toFixed(1):"-";
+        const unpriced=wOrders.filter(o=>!o._pi.matched).length;
+        const MS={
+          ovl:{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:16},
+          box:{background:"rgba(255,255,255,0.88)",backdropFilter:"blur(24px) saturate(160%)",WebkitBackdropFilter:"blur(24px) saturate(160%)",borderRadius:20,width:"100%",maxWidth:520,maxHeight:"88vh",overflowY:"auto",boxShadow:"0 16px 56px rgba(0,0,0,0.18),inset 0 1px 0 rgba(255,255,255,0.9)",border:"1px solid rgba(255,255,255,0.6)"},
+          hdr:{background:"#111218",borderRadius:"20px 20px 0 0",padding:"18px 22px",display:"flex",justifyContent:"space-between",alignItems:"center"},
+          sec:{padding:"14px 20px",borderBottom:"1px solid #F2F4F6"},
+          secT:{fontSize:11,fontWeight:700,color:"#8B95A1",marginBottom:10,letterSpacing:0.5,textTransform:"uppercase"},
+          krow:{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:4},
+          kcard:{background:"#F0FDFA",borderRadius:10,padding:"10px 8px",textAlign:"center"},
+          tag:{fontSize:10,color:"#8B95A1",marginBottom:3},
+          val:{fontSize:15,fontWeight:800,color:"#0D9488"},
+          bar:{display:"flex",alignItems:"center",gap:8,marginBottom:6},
+          barLabel:{fontSize:12,color:"#191F28",fontWeight:600,width:40},
+          barTrack:{flex:1,height:6,background:"#F2F4F6",borderRadius:3,overflow:"hidden"},
+          barFill:{height:"100%",background:"linear-gradient(90deg,#0D9488,#14B8A6)",borderRadius:3},
+          pill:{fontSize:11,padding:"3px 9px",borderRadius:20,background:"#F0FDFA",color:"#0D9488",fontWeight:700},
+        };
+        const maxQty=Math.max(...lobData.map(l=>l.qty),1);
+        return(
+          <div style={MS.ovl} onClick={()=>setWeekModal(null)}>
+            <div style={MS.box} onClick={e=>e.stopPropagation()}>
+              {/* 헤더 */}
+              <div style={MS.hdr}>
+                <div>
+                  <div style={{fontSize:11,color:"rgba(255,255,255,0.7)",marginBottom:2}}>주별 요약</div>
+                  <div style={{fontSize:17,fontWeight:800,color:"#fff"}}>{weekModal}</div>
+                </div>
+                <button onClick={()=>setWeekModal(null)} style={{background:"rgba(255,255,255,0.15)",border:"none",color:"#fff",borderRadius:8,width:30,height:30,fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+              </div>
+              {/* KPI 요약 */}
+              <div style={{...MS.sec,borderBottom:"1px solid #F2F4F6"}}>
+                <div style={MS.krow}>
+                  {[["견적 건수",wTot.cnt+"건","#0D9488"],["총 대수",wTot.qty+"대","#14B8A6"],["매출금액",W(wTot.rev),"#00B252"],["GP",W(wTot.gp),wTot.gp>=0?"#FF8C00":"#F04452"]].map(([t,v,c])=>(
+                    <div key={t} style={MS.kcard}>
+                      <div style={MS.tag}>{t}</div>
+                      <div style={{...MS.val,color:c,fontSize:13}}>{v}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:6}}>
+                  {wTot.rev>0&&<span style={{...MS.pill,background:"#E6F9EE",color:"#00B252"}}>GP율 {gpRate}%</span>}
+                  {unpriced>0&&<span style={{...MS.pill,background:"#FFF4E0",color:"#FF8C00"}}>⚠️ 단가 미등록 {unpriced}건</span>}
+                </div>
+              </div>
+              {/* LOB별 */}
+              {lobData.length>0&&(
+                <div style={MS.sec}>
+                  <div style={MS.secT}>LOB별 실적</div>
+                  {lobData.map(l=>(
+                    <div key={l.lob} style={{marginBottom:10}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                        <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                          <span style={{...MS.pill,background:"#F0FDFA",color:"#0D9488",fontSize:10}}>{l.lob}</span>
+                          <span style={{fontSize:11,color:"#8B95A1"}}>{l.cnt}건 · {l.qty}대</span>
+                        </div>
+                        <div style={{display:"flex",gap:8}}>
+                          <span style={{fontSize:11,fontWeight:700,color:"#00B252"}}>{l.rev>0?W(l.rev):"-"}</span>
+                          {l.rev>0&&<span style={{fontSize:11,color:"#FF8C00",fontWeight:700}}>GP {W(l.gp)}</span>}
+                        </div>
+                      </div>
+                      <div style={MS.barTrack}><div style={{...MS.barFill,width:`${(l.qty/maxQty*100).toFixed(0)}%`}}/></div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {/* 상위 매출처 */}
+              {topCust.length>0&&(
+                <div style={MS.sec}>
+                  <div style={MS.secT}>주요 매출처</div>
+                  {topCust.map(([cust,d],i)=>(
+                    <div key={cust} style={{display:"flex",alignItems:"center",gap:8,marginBottom:7}}>
+                      <span style={{fontSize:12,fontWeight:800,color:"#99F6E4",width:16}}>{i+1}</span>
+                      <span style={{fontSize:12,fontWeight:600,color:"#191F28",flex:1}}>{cust}</span>
+                      <span style={{fontSize:11,color:"#8B95A1"}}>{d.cnt}건 · {d.qty}대</span>
+                      <span style={{fontSize:11,fontWeight:700,color:"#00B252",minWidth:50,textAlign:"right"}}>{d.rev>0?W(d.rev):"-"}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {/* 상위 MPN */}
+              {topMpn.length>0&&(
+                <div style={{...MS.sec,borderBottom:"none"}}>
+                  <div style={MS.secT}>수량 상위 품목</div>
+                  {topMpn.map(([mpn,d],i)=>(
+                    <div key={mpn} style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+                      <span style={{fontSize:12,fontWeight:800,color:"#99F6E4",width:16}}>{i+1}</span>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontSize:12,fontWeight:600,color:"#191F28",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{mpn}</div>
+                        <div style={{fontSize:10,color:"#8B95A1",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{d.name}</div>
+                      </div>
+                      <span style={{...MS.pill,flexShrink:0}}>{d.qty}대</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+    </div>
+  );
+}
+
+/* ══════════════ 계산서 모달 ══════════════ */
+function InvoiceModal({row, onClose, onSave, onClear}){
+  const [iDate,setIDate]=useState(row.invoiceDate||"");
+  const [iMemo,setIMemo]=useState(row.invoice||"");
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.3)",backdropFilter:"blur(12px)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={onClose}>
+      <div style={{background:"rgba(255,255,255,0.90)",backdropFilter:"blur(24px) saturate(160%)",WebkitBackdropFilter:"blur(24px) saturate(160%)",borderRadius:16,padding:"20px 24px",width:"min(360px,90vw)",boxShadow:"0 16px 48px rgba(0,0,0,0.16),inset 0 1px 0 rgba(255,255,255,0.9)",border:"1px solid rgba(255,255,255,0.6)"}} onClick={e=>e.stopPropagation()}>
+        <div style={{fontSize:14,fontWeight:700,marginBottom:4}}>🧾 세금계산서 발행 정보</div>
+        <div style={{fontSize:11,color:"#8B95A1",marginBottom:16}}>{row.customer} · {row.itemName}</div>
+        <div style={{marginBottom:12}}>
+          <div style={{fontSize:11,fontWeight:700,color:"#8B95A1",marginBottom:6}}>발행일</div>
+          <input type="date" value={iDate} onChange={e=>{setIDate(e.target.value);e.target.blur();}}
+            style={{width:"100%",border:"1.5px solid #99F6E4",borderRadius:10,padding:"9px 12px",fontSize:13,outline:"none",boxSizing:"border-box"}}/>
+        </div>
+        <div style={{marginBottom:16}}>
+          <div style={{fontSize:11,fontWeight:700,color:"#8B95A1",marginBottom:6}}>메모 <span style={{fontWeight:400,color:"#B0B8C1"}}>(선택)</span></div>
+          <input value={iMemo} onChange={e=>setIMemo(e.target.value)}
+            placeholder="월말 합발행, 별도 메모 등"
+            onKeyDown={e=>{if(e.key==="Enter") onSave(iDate,iMemo.trim());}}
+            style={{width:"100%",border:"1.5px solid #99F6E4",borderRadius:10,padding:"9px 12px",fontSize:13,outline:"none",boxSizing:"border-box"}}/>
+        </div>
+        <div style={{display:"flex",gap:8}}>
+          <button style={{flex:2,background:"#0D9488",color:"#fff",border:"none",borderRadius:10,padding:"10px",fontSize:13,fontWeight:700,cursor:"pointer"}}
+            onClick={()=>onSave(iDate,iMemo.trim())}>저장</button>
+          <button style={{flex:1,background:"#F2F4F6",color:"#8B95A1",border:"none",borderRadius:10,padding:"10px",fontSize:13,cursor:"pointer"}}
+            onClick={onClear}>초기화</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════ 일괄 처리 모달 ══════════════ */
+function BulkModal({cnt, onClose, onApply}){
+  const [bStatus,setBStatus]=useState("");
+  const [bAtt,setBAtt]=useState({quote:false,serial:false,inspect:false});
+  const [bAttVal,setBAttVal]=useState(true);
+  const [section,setSection]=useState(null);
+  const BS={
+    ovl:{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",zIndex:400,display:"flex",alignItems:"center",justifyContent:"center",padding:16},
+    box:{background:"rgba(255,255,255,0.88)",backdropFilter:"blur(24px) saturate(160%)",WebkitBackdropFilter:"blur(24px) saturate(160%)",borderRadius:20,width:"min(420px,96vw)",boxShadow:"0 16px 56px rgba(0,0,0,0.18),inset 0 1px 0 rgba(255,255,255,0.9)",border:"1px solid rgba(255,255,255,0.6)",overflow:"hidden"},
+    hdr:{background:"#111218",padding:"18px 22px",display:"flex",justifyContent:"space-between",alignItems:"center"},
+    sec:{padding:"14px 20px",borderBottom:"1px solid #F2F4F6"},
+    secBtn:(active)=>({width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center",background:active?"#F0FDFA":"#F0FDFA",border:active?"1.5px solid #0D9488":"1.5px solid #E5E8EB",borderRadius:10,padding:"11px 14px",fontSize:13,fontWeight:700,cursor:"pointer",color:active?"#0D9488":"#191F28",marginBottom:active?8:0}),
+    chip:(on)=>({padding:"6px 14px",borderRadius:20,border:on?"1.5px solid #0D9488":"1.5px solid #E5E8EB",background:on?"#0D9488":"#fff",color:on?"#fff":"#8B95A1",fontSize:12,fontWeight:on?700:400,cursor:"pointer",whiteSpace:"nowrap"}),
+    attBtn:(on)=>({padding:"6px 14px",borderRadius:20,border:on?"1.5px solid #00B252":"1.5px solid #E5E8EB",background:on?"#E6F9EE":"#fff",color:on?"#00B252":"#8B95A1",fontSize:12,fontWeight:on?700:400,cursor:"pointer"}),
+  };
+  function handleApply(){
+    const hasStatus=section==="status"&&bStatus;
+    const hasAtt=section==="att"&&Object.values(bAtt).some(Boolean);
+    if(!hasStatus&&!hasAtt){onClose();return;}
+    onApply({
+      orderStatus:hasStatus?bStatus:undefined,
+      attKeys:hasAtt?{keys:Object.keys(bAtt).filter(k=>bAtt[k]),val:bAttVal}:undefined,
+    });
+  }
+  return(
+    <div style={BS.ovl} onClick={onClose}>
+      <div style={BS.box} onClick={e=>e.stopPropagation()}>
+        <div style={BS.hdr}>
+          <div>
+            <div style={{fontSize:11,color:"rgba(255,255,255,0.75)",marginBottom:2}}>일괄 처리</div>
+            <div style={{fontSize:16,fontWeight:800,color:"#fff"}}>선택한 {cnt}건 수정</div>
+          </div>
+          <button onClick={onClose} style={{background:"rgba(255,255,255,0.15)",border:"none",color:"#fff",borderRadius:8,width:30,height:30,fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+        </div>
+
+        {/* 발주 확인 */}
+        <div style={BS.sec}>
+          <button style={BS.secBtn(section==="status")} onClick={()=>setSection(section==="status"?null:"status")}>
+            <span>📋 발주 확인 변경</span>
+            <span style={{fontSize:12,fontWeight:400,color:section==="status"&&bStatus?"#0D9488":"#8B95A1"}}>{section==="status"&&bStatus?bStatus:"선택 안 함"} {section==="status"?"▲":"▼"}</span>
+          </button>
+          {section==="status"&&(
+            <div style={{display:"flex",gap:6,flexWrap:"wrap",paddingBottom:6}}>
+              {ORDER_STATUS_OPTIONS.map(s=>(
+                <button key={s} style={BS.chip(bStatus===s)} onClick={()=>setBStatus(bStatus===s?"":s)}>{s}</button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* 서류 */}
+        <div style={BS.sec}>
+          <button style={BS.secBtn(section==="att")} onClick={()=>setSection(section==="att"?null:"att")}>
+            <span>📄 서류 일괄 처리</span>
+            <span style={{fontSize:12,fontWeight:400,color:"#8B95A1"}}>{section==="att"?"▲":"▼"}</span>
+          </button>
+          {section==="att"&&(
+            <div style={{paddingBottom:6}}>
+              <div style={{fontSize:11,color:"#8B95A1",marginBottom:8,fontWeight:600}}>처리할 서류 선택</div>
+              <div style={{display:"flex",gap:6,marginBottom:12}}>
+                {[["quote","견적"],["serial","시리얼"],["inspect","검수"]].map(([k,l])=>(
+                  <button key={k} style={BS.attBtn(bAtt[k])} onClick={()=>setBAtt(a=>({...a,[k]:!a[k]}))}>{l}</button>
+                ))}
+              </div>
+              <div style={{fontSize:11,color:"#8B95A1",marginBottom:8,fontWeight:600}}>처리 방식</div>
+              <div style={{display:"flex",gap:6}}>
+                <button style={BS.chip(bAttVal===true)} onClick={()=>setBAttVal(true)}>✓ 완료로 표시</button>
+                <button style={{padding:"6px 14px",borderRadius:20,border:!bAttVal?"1.5px solid #8B95A1":"1.5px solid #E5E8EB",background:!bAttVal?"#F2F4F6":"#fff",color:!bAttVal?"#191F28":"#8B95A1",fontSize:12,fontWeight:!bAttVal?700:400,cursor:"pointer"}} onClick={()=>setBAttVal(false)}>✕ 미완료로 표시</button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* 적용 버튼 */}
+        <div style={{padding:"14px 20px",display:"flex",gap:8,justifyContent:"flex-end"}}>
+          <button onClick={onClose} style={{background:"#F2F4F6",color:"#8B95A1",border:"none",borderRadius:10,padding:"10px 18px",fontSize:13,cursor:"pointer",fontWeight:600}}>취소</button>
+          <button onClick={handleApply} style={{background:"#0D9488",color:"#fff",border:"none",borderRadius:10,padding:"10px 22px",fontSize:13,fontWeight:700,cursor:"pointer"}}>{cnt}건 적용</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════ 로컬스토리지 헬퍼 ══════════════ */
+const LS_KEYS={orders:"toss_orders",nextId:"toss_nextId",att:"toss_att"};
+function lsLoad(key,fallback){
+  try{ const v=localStorage.getItem(key); return v?JSON.parse(v):fallback; }
+  catch{ return fallback; }
+}
+function lsSave(key,val){
+  try{ localStorage.setItem(key,JSON.stringify(val)); }catch{}
+}
+
+/* ══════════════ 메인 앱 ══════════════ */
+function App(){
+  const [orders, setOrders]=useState(()=>lsLoad(LS_KEYS.orders,INITIAL_DATA));
+  const [attachments, setAttachments]=useState(()=>lsLoad(LS_KEYS.att,{})); // { [orderId]: {quote:bool, serial:bool, inspect:bool} }
+  const [nextId, setNextId]=useState(()=>lsLoad(LS_KEYS.nextId,INITIAL_DATA.length+1));
+  const [tab, setTab]=useState("orders");
+  const [salesView, setSalesView]=useState("month");
+  const [statsView, setStatsView]=useState("customer");
+  const [expandedNav, setExpandedNav]=useState(new Set(["orders"]));
+  const [modal, setModal]=useState(null); // null | {type, ...}
+  const [savedAt, setSavedAt]=useState(null);
+  const [toasts, setToasts]=useState([]);
+  function showToast(msg, type="success"){
+    const id=Date.now();
+    setToasts(t=>[...t,{id,msg,type}]);
+    setTimeout(()=>setToasts(t=>t.filter(x=>x.id!==id)),3000);
+  }
+
+  // 자동 저장
+  useEffect(()=>{ lsSave(LS_KEYS.orders,orders); setSavedAt(new Date()); },[orders]);
+  useEffect(()=>{ lsSave(LS_KEYS.nextId,nextId); },[nextId]);
+  useEffect(()=>{ lsSave(LS_KEYS.att,attachments); },[attachments]);
+
+  /* ── 데이터 백업 ── */
+  function backupData(){
+    const data={
+      orders: lsLoad(LS_KEYS.orders, []),
+      nextId: lsLoad(LS_KEYS.nextId, 1),
+      att:    lsLoad(LS_KEYS.att,    {}),
+      exportedAt: new Date().toISOString()
+    };
+    const json=JSON.stringify(data, null, 2);
+    const blob=new Blob([json],{type:"application/json"});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");
+    a.href=url;
+    a.download="토스_발주데이터_"+new Date().toISOString().slice(0,10)+".json";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  /* ── 데이터 복원 ── */
+  function restoreData(){
+    const input=document.createElement("input");
+    input.type="file";
+    input.accept=".json";
+    input.onchange=e=>{
+      const file=e.target.files[0];
+      if(!file) return;
+      const reader=new FileReader();
+      reader.onload=ev=>{
+        try{
+          const data=JSON.parse(ev.target.result);
+          if(!data.orders) throw new Error("올바른 백업 파일이 아닙니다.");
+          if(!confirm(`백업 데이터를 불러올까요?\n(${data.exportedAt?.slice(0,16).replace("T"," ")||"날짜 불명"} 저장본)\n\n현재 데이터는 덮어쓰여집니다.`)) return;
+          lsSave(LS_KEYS.orders, data.orders);
+          lsSave(LS_KEYS.nextId, data.nextId||1);
+          lsSave(LS_KEYS.att,    data.att||{});
+          setOrders(data.orders);
+          setNextId(data.nextId||1);
+          setAttachments(data.att||{});
+          showToast("데이터 복원이 완료되었습니다.");
+        }catch(err){
+          alert("복원 실패: "+err.message);
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  }
+
+  function resetData(){
+    if(!confirm("모든 데이터를 초기 상태로 되돌릴까요?\n저장된 발주 내역이 모두 삭제됩니다.")) return;
+    Object.values(LS_KEYS).forEach(k=>localStorage.removeItem(k));
+    setOrders(INITIAL_DATA); setNextId(INITIAL_DATA.length+1); setAttachments({});
+  }
+  const [search, setSearch]=useState("");
+  const [filterCustomer, setFilterCustomer]=useState("전체");
+  const [filterCat, setFilterCat]=useState("전체");
+  const [filterStatus, setFilterStatus]=useState("전체");
+  const [filterCompletion, setFilterCompletion]=useState("전체");
+  const [filterMonth, setFilterMonth]=useState("");
+  const availableMonths=useMemo(()=>{
+    const s=new Set(orders.map(o=>(o.quoteDate||"").slice(0,7)).filter(m=>m.length===7));
+    return Array.from(s).sort();
+  },[orders]);
+  const [sortKey, setSortKey]=useState("quoteDate");
+  const [sortAsc, setSortAsc]=useState(false);
+  const [page, setPage]=useState(1);
+  const [selectedIds, setSelectedIds]=useState(new Set());
+  const [bulkModal, setBulkModal]=useState(false);
+  const PAGE_SIZE=15;
+
+  // KPI
+  const kpi=useMemo(()=>{
+    const active=orders.filter(o=>!o.orderStatus?.includes("취소"));
+    const done=active.filter(o=>{const d=calcDelivery(o);return d.type==="done";});
+    const pending=active.filter(o=>{const d=calcDelivery(o);return d.type!=="done";});
+    const cancelled=orders.filter(o=>o.orderStatus?.includes("취소"));
+    return {total:orders.length,done:done.length,pending:pending.length,cancelled:cancelled.length};
+  },[orders]);
+
+
+  // 필터+정렬
+  const filtered=useMemo(()=>{
+    let d=[...orders];
+    if(filterCustomer!=="전체") d=d.filter(r=>r.customer===filterCustomer);
+    if(filterCat!=="전체") d=d.filter(r=>r.category===filterCat);
+    if(filterStatus!=="전체"){
+      if(filterStatus==="납품완료") d=d.filter(r=>calcDelivery(r).type==="done");
+      else if(filterStatus==="납품중") d=d.filter(r=>{const t=calcDelivery(r).type;return t==="partial"||t==="pending";});
+      else if(filterStatus==="납품전") d=d.filter(r=>calcDelivery(r).type==="none");
+      else d=d.filter(r=>r.orderStatus===filterStatus);
+    }
+    if(filterCompletion!=="전체"){
+      d=d.filter(r=>{
+        const del=calcDelivery(r);
+        const isDone=del.type==="done";
+        const hasInvoice=(r.deliveries||[]).some(d=>d.invoiceDate||d.invoiceMemo)||r.invoiceDate||r.invoice;
+        if(filterCompletion==="납품+계산서완료") return isDone&&hasInvoice;
+        if(filterCompletion==="납품완료/계산서미발행") return isDone&&!hasInvoice;
+        if(filterCompletion==="납품미완료") return !isDone;
+        if(filterCompletion==="납품대기전체") return !r.orderStatus?.includes("취소")&&(!isDone||!hasInvoice);
+        if(filterCompletion==="발주취소") return !!(r.orderStatus?.includes("취소"));
+        return true;
+      });
+    }
+    if(filterMonth) d=d.filter(r=>(r.quoteDate||"").slice(0,7)===filterMonth);
+    if(search){const q=search.toLowerCase();d=d.filter(r=>r.itemName.toLowerCase().includes(q)||r.mpn.toLowerCase().includes(q)||r.customer.toLowerCase().includes(q));}
+    d.sort((a,b)=>{
+      let va=a[sortKey]??"",vb=b[sortKey]??"";
+      if(sortKey==="qty"){va=+a.qty;vb=+b.qty;}
+      if(sortKey==="delivery"){va=calcDelivery(a).pct;vb=calcDelivery(b).pct;}
+      const cmp=typeof va==="number"?va-vb:String(va).localeCompare(String(vb));
+      return sortAsc?cmp:-cmp;
+    });
+    return d;
+  },[orders,filterCustomer,filterCat,filterStatus,filterCompletion,filterMonth,search,sortKey,sortAsc]);
+
+  const totalPages=Math.max(1,Math.ceil(filtered.length/PAGE_SIZE));
+  const pageData=filtered.slice((page-1)*PAGE_SIZE,page*PAGE_SIZE);
+
+  function handleSort(k){ if(sortKey===k) setSortAsc(a=>!a); else{setSortKey(k);setSortAsc(true);} }
+  function resetFilters(){ setSearch("");setFilterCustomer("전체");setFilterCat("전체");setFilterStatus("전체");setFilterCompletion("전체");setFilterMonth("");setPage(1); }
+
+  function saveOrder(form){
+    if(form.id){
+      setOrders(o=>o.map(r=>r.id===form.id?{...form}:r));
+      showToast("발주가 수정되었습니다.");
+    } else {
+      setOrders(o=>[...o,{...form,id:nextId,deliveries:form.deliveries||[]}]);
+      setNextId(n=>n+1);
+      showToast("발주가 등록되었습니다.");
+    }
+    setModal(null);
+  }
+  function deleteOrder(id){
+    setOrders(o=>o.filter(r=>r.id!==id));
+    setSelectedIds(s=>{const n=new Set(s);n.delete(id);return n;});
+    setModal(null);
+    showToast("발주가 삭제되었습니다.","error");
+  }
+  function deleteSelected(){
+    const ids=Array.from(selectedIds);
+    if(!ids.length) return;
+    if(!confirm(`선택한 ${ids.length}건을 삭제할까요?`)) return;
+    setOrders(o=>o.filter(r=>!selectedIds.has(r.id)));
+    setSelectedIds(new Set());
+    showToast(`${ids.length}건이 삭제되었습니다.`,"error");
+  }
+
+  function applyBulk({orderStatus, attKeys}){
+    const ids=Array.from(selectedIds);
+    if(orderStatus!==undefined){
+      setOrders(o=>o.map(r=>selectedIds.has(r.id)?{...r,orderStatus}:r));
+    }
+    if(attKeys){
+      const val=attKeys.val;
+      setAttachments(a=>{
+        const next={...a};
+        ids.forEach(id=>{
+          const cur=next[id]||{};
+          const patch={};
+          attKeys.keys.forEach(k=>{ patch[k]=val; });
+          next[id]={...cur,...patch};
+        });
+        return next;
+      });
+    }
+    setBulkModal(false);
+    showToast(`${ids.length}건에 일괄 적용되었습니다.`);
+  }
+  function deleteAll(){
+    if(!confirm(`수발주 현황 전체 ${filtered.length}건을 삭제할까요?\n이 작업은 되돌릴 수 없습니다.`)) return;
+    const filteredIds=new Set(filtered.map(o=>o.id));
+    setOrders(o=>o.filter(r=>!filteredIds.has(r.id)));
+    setSelectedIds(new Set());
+    showToast(`전체 ${filteredIds.size}건이 삭제되었습니다.`,"error");
+  }
+  function saveDeliveries(id,dels){ setOrders(o=>o.map(r=>r.id===id?{...r,deliveries:dels}:r)); setModal(null); showToast("납품 정보가 저장되었습니다."); }
+  function toggleAtt(id, key){
+    const oldAtt=attachments[id]||{};
+    const newVal=!oldAtt[key];
+    setAttachments(a=>({...a,[id]:{...oldAtt,[key]:newVal}}));
+  }
+  function importOrders(items, quoteFile){
+    const startId=nextId;
+    const newOrders=items.map((item,i)=>({...item,id:startId+i,deliveries:[]}));
+    setOrders(o=>[...o,...newOrders]);
+    setNextId(n=>n+items.length);
+    // 견적 자동 체크 처리
+    if(quoteFile){
+      const newAtts={};
+      newOrders.forEach(o=>{ newAtts[o.id]={quote:true,serial:false,inspect:false}; });
+      setAttachments(a=>({...a,...newAtts}));
+    }
+    showToast(`${items.length}건이 가져오기 완료되었습니다.`);
+  }
+
+  function getDocBadge(row){
+    const att=attachments[row.id]||{};
+    const hasQuote=!!att.quote;
+    const hasSerial=!!att.serial;
+    const hasInspect=!!att.inspect;
+    return {hasQuote,hasSerial,hasInspect,allDone:hasQuote&&hasSerial&&hasInspect,anyDone:hasQuote||hasSerial||hasInspect};
+  }
+
+  function patchOrder(id,fields){
+    setOrders(o=>o.map(r=>r.id===id?{...r,...fields}:r));
+  }
+
+  /* ── Excel 내보내기 ── */
+  function exportToExcel(){
+    const wb=XLSX.utils.book_new();
+    const today=new Date().toISOString().slice(0,10);
+    const W=(n)=>n!=null&&n!=="-"?Math.round(n):"-";
+
+    // ── 시트1: 수발주 현황 ──
+    const ordHdr=["견적일","수발주일","매출처","구분","MPN","품목명","수량","발주확인","납품현황","계산서","특이사항","견적","시리얼","검수"];
+    const ordRows=orders.map(o=>{
+      const del=calcDelivery(o);
+      const totalQty=(o.qty||0)+(o.subItems||[]).reduce((s,i)=>s+(+i.qty||0),0);
+      const att=attachments[o.id]||{};
+      return [
+        o.quoteDate,o.orderDate,o.customer,o.category,o.mpn,o.itemName,
+        totalQty,o.orderStatus||"-",del.label,o.invoice||"미발행",o.notes||"",
+        att.quote?"✅":"—",
+        att.serial?"✅":"—",
+        att.inspect?"✅":"—",
+      ];
+    });
+    const ws1=XLSX.utils.aoa_to_sheet([ordHdr,...ordRows]);
+    ws1["!cols"]=[{wch:12},{wch:14},{wch:22},{wch:6},{wch:16},{wch:38},{wch:7},{wch:20},{wch:20},{wch:16},{wch:30},{wch:20},{wch:20},{wch:20}];
+    XLSX.utils.book_append_sheet(wb,ws1,"수발주현황");
+
+    // ── 시트2: 납품 내역 ──
+    const delHdr=["견적일","매출처","MPN","품목명","납품수량","납품일","납품상태","타사제품","메모"];
+    const delRows=[];
+    orders.forEach(o=>{
+      (o.deliveries||[]).forEach(d=>{
+        delRows.push([o.quoteDate,o.customer,o.mpn,o.itemName,d.qty,d.date,d.status,d.fromOther?"타사":"",d.note||""]);
+      });
+    });
+    const ws3=XLSX.utils.aoa_to_sheet([delHdr,...delRows]);
+    ws3["!cols"]=[{wch:12},{wch:22},{wch:16},{wch:38},{wch:9},{wch:12},{wch:9},{wch:9},{wch:30}];
+    XLSX.utils.book_append_sheet(wb,ws3,"납품내역");
+
+    // ── 시트4: 매출 현황 ──
+    const salesHdr=["매출처","구분","MPN","품목명","수량","매출금액(공급)","매입단가합계","GP","GP율(%)"];
+    const salesActive=orders.filter(o=>!o.orderStatus?.includes("취소"));
+    const salesRows=salesActive.map(o=>{
+      const qty=(o.qty||0)+(o.subItems||[]).reduce((s,i)=>s+(+i.qty||0),0);
+      const pi=getPriceInfo(o.mpn,o.itemName);
+      const rev=pi.matched?pi.svo*qty:null;
+      const buy=pi.matched?Math.round(pi.msrp*0.91/1.1)*qty:null;
+      const gp=pi.matched?pi.gp*qty:null;
+      return [o.customer,o.category,o.mpn,o.itemName,qty,
+        W(rev),W(buy),W(gp),
+        pi.matched&&rev?((gp/rev)*100).toFixed(2)+"%":"-"];
+    });
+    const ws4=XLSX.utils.aoa_to_sheet([salesHdr,...salesRows]);
+    ws4["!cols"]=[{wch:22},{wch:6},{wch:16},{wch:38},{wch:7},{wch:16},{wch:16},{wch:14},{wch:10}];
+    XLSX.utils.book_append_sheet(wb,ws4,"매출현황");
+
+    XLSX.writeFile(wb,`토스_발주관리_${today}.xlsx`);
+  }
+
+  const S={
+    page:{minHeight:"100vh"},
+    header:{},
+    logo:{display:"flex",alignItems:"center",gap:10,flexShrink:0},
+    logoBox:{width:32,height:32,background:"linear-gradient(135deg,#0D9488,#14B8A6)",borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,boxShadow:"0 2px 10px rgba(13,148,136,0.45)"},
+    logoText:{fontSize:14,fontWeight:700,color:"#fff",letterSpacing:-0.3,whiteSpace:"nowrap"},
+    headerBtns:{display:"flex",gap:5,alignItems:"center"},
+    actionBtn:(primary)=>({border:primary?"none":"1px solid rgba(255,255,255,0.1)",background:primary?"#0D9488":"rgba(255,255,255,0.06)",color:"#fff",borderRadius:8,padding:"6px 13px",fontSize:12,fontWeight:primary?600:400,cursor:"pointer",display:"flex",alignItems:"center",gap:5,whiteSpace:"nowrap",transition:"all 0.15s"}),
+    main:{},
+    kpiRow:{},
+    kpiCard:{background:"rgba(255,255,255,0.70)",backdropFilter:"blur(20px) saturate(160%)",WebkitBackdropFilter:"blur(20px) saturate(160%)",borderRadius:16,padding:"20px 22px",boxShadow:"0 4px 24px rgba(0,0,0,0.06),inset 0 1px 0 rgba(255,255,255,0.85)",border:"1px solid rgba(255,255,255,0.55)"},
+    filterBar:{background:"rgba(255,255,255,0.70)",backdropFilter:"blur(20px) saturate(160%)",WebkitBackdropFilter:"blur(20px) saturate(160%)",borderRadius:12,padding:"10px 14px",marginBottom:12,boxShadow:"0 2px 12px rgba(0,0,0,0.05),inset 0 1px 0 rgba(255,255,255,0.85)",display:"flex",gap:8,flexWrap:"wrap",alignItems:"center",border:"1px solid rgba(255,255,255,0.55)"},
+    tableWrap:{background:"rgba(255,255,255,0.72)",backdropFilter:"blur(20px) saturate(160%)",WebkitBackdropFilter:"blur(20px) saturate(160%)",borderRadius:16,boxShadow:"0 4px 32px rgba(0,0,0,0.07),inset 0 1px 0 rgba(255,255,255,0.85)",overflow:"hidden",border:"1px solid rgba(255,255,255,0.55)"},
+    thead:{background:"rgba(7,7,12,0.88)"},
+    th:{padding:"11px 10px",fontSize:10,fontWeight:600,color:"rgba(255,255,255,0.85)",textAlign:"left",whiteSpace:"nowrap",cursor:"pointer",userSelect:"none",letterSpacing:"0.07em",textTransform:"uppercase",fontWeight:700},
+    td:{padding:"11px 10px",fontSize:12,color:"#0D0F1C",verticalAlign:"middle",borderBottom:"1px solid rgba(0,0,0,0.05)"},
+    selectInp:{border:"1px solid rgba(0,0,0,0.1)",borderRadius:8,padding:"7px 10px",fontSize:12,background:"rgba(255,255,255,0.7)",color:"#0D0F1C",outline:"none"},
+    searchInp:{border:"1px solid rgba(0,0,0,0.1)",borderRadius:8,padding:"7px 12px",fontSize:12,outline:"none",width:180,color:"#0D0F1C",background:"rgba(255,255,255,0.7)",height:34,boxSizing:"border-box"},
+    pill:(bg,c)=>({display:"inline-flex",alignItems:"center",background:bg,color:c,borderRadius:6,padding:"3px 8px",fontSize:10,fontWeight:600,whiteSpace:"nowrap",letterSpacing:"0.01em"}),
+    iconBtn:{border:"none",background:"transparent",cursor:"pointer",padding:"3px 5px",borderRadius:6,fontSize:13,transition:"background 0.15s"},
+  };
+
+  const [openFilter,setOpenFilter]=useState(null); // 열린 필터 컬럼 키
+  const filterRef=useRef({});
+
+  // 컬럼별 필터 옵션 정의
+  const colFilters={
+    customer:{label:"매출처",options:["전체",...CUSTOMERS],value:filterCustomer,set:v=>{setFilterCustomer(v);setPage(1);setOpenFilter(null);}},
+    category:{label:"구분",options:["전체",...CATEGORIES],value:filterCat,set:v=>{setFilterCat(v);setPage(1);setOpenFilter(null);}},
+    orderStatus:{label:"발주확인",options:["전체",...ORDER_STATUS_OPTIONS],value:filterStatus,set:v=>{setFilterStatus(v);setPage(1);setOpenFilter(null);}},
+    delivery:{label:"납품현황",options:["전체","납품 전","납품중","전체완료"],value:filterStatus==="납품완료"?"전체완료":filterStatus==="납품중"?"납품중":filterStatus==="납품전"?"납품 전":"전체",
+      set:v=>{setFilterStatus(v==="전체완료"?"납품완료":v==="납품중"?"납품중":v==="납품 전"?"납품전":"전체");setPage(1);setOpenFilter(null);}},
+  };
+
+  const Th=({k,label,filterable})=>{
+    const cf=filterable?colFilters[filterable]:null;
+    const isFiltered=cf&&cf.value!=="전체";
+    return(
+      <th style={{...S.th,position:"relative"}} onClick={()=>!filterable&&handleSort(k)}>
+        <div style={{display:"flex",alignItems:"center",gap:4}}>
+          <span style={{cursor:filterable?"default":"pointer"}} onClick={filterable?undefined:()=>handleSort(k)}>
+            {label}{!filterable&&sortKey===k?(sortAsc?" ↑":" ↓"):""}
+          </span>
+          {filterable&&(
+            <button
+              ref={el=>filterRef.current[filterable]=el}
+              onClick={e=>{e.stopPropagation();setOpenFilter(openFilter===filterable?null:filterable);}}
+              style={{border:"none",background:isFiltered?"rgba(255,255,255,0.35)":"rgba(255,255,255,0.15)",color:"#fff",borderRadius:4,padding:"1px 5px",fontSize:10,cursor:"pointer",lineHeight:1.4,fontWeight:isFiltered?700:400,flexShrink:0}}>
+              {isFiltered?`${cf.value.length>4?cf.value.slice(0,4)+"…":cf.value}`:"▼"}
+            </button>
+          )}
+        </div>
+        {filterable&&openFilter===filterable&&(
+          <div onClick={e=>e.stopPropagation()} style={{position:"absolute",top:"100%",left:0,zIndex:200,background:"#fff",borderRadius:10,boxShadow:"0 4px 20px rgba(0,0,0,0.15)",border:"1.5px solid #E5E8EB",minWidth:140,maxHeight:220,overflowY:"auto",marginTop:2}}>
+            {cf.options.map(opt=>(
+              <div key={opt} onClick={()=>cf.set(opt)}
+                style={{padding:"8px 14px",fontSize:12,cursor:"pointer",fontWeight:cf.value===opt?700:400,
+                  color:cf.value===opt?"#0D9488":"#0D0F1C",
+                  background:cf.value===opt?"#F0FDFA":"#fff",
+                  borderBottom:"1px solid #F2F4F6"}}>
+                {opt}
+              </div>
+            ))}
+          </div>
+        )}
+      </th>
+    );
+  };
+
+  // 외부 클릭 시 필터 닫기
+  useEffect(()=>{
+    const handler=()=>setOpenFilter(null);
+    document.addEventListener("click",handler);
+    return()=>document.removeEventListener("click",handler);
+  },[]);
+
+  return(
+    <div style={S.page}>
+      {/* ── 헤더 ── */}
+      <header className="hdr-inner">
+        <div className="hdr-left" style={S.logo}>
+          <div style={S.logoBox}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+          <span style={S.logoText}>토스 발주관리</span>
+        </div>
+        <div className="hdr-right" style={S.headerBtns}>
+          {savedAt&&(
+            <span style={{fontSize:11,color:"rgba(255,255,255,0.7)",display:"flex",alignItems:"center",gap:4,whiteSpace:"nowrap"}}>
+              <span style={{width:6,height:6,borderRadius:"50%",background:"#4ADE80",display:"inline-block",flexShrink:0}}/>
+              <span className="btn-lbl">자동저장 {savedAt.toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit",second:"2-digit"})}</span>
+            </span>
+          )}
+          <button style={{...S.actionBtn(false),borderColor:"rgba(255,255,255,0.3)",color:"rgba(255,255,255,0.75)"}} onClick={resetData} title="초기 데이터로 되돌리기">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M3 12a9 9 0 1 0 9-9 9 9 0 0 0-6.36 2.64L3 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M3 3v5h5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            <span className="btn-lbl">초기화</span>
+          </button>
+          <button style={{...S.actionBtn(false),borderColor:"rgba(255,255,255,0.3)",color:"rgba(255,255,255,0.9)"}} onClick={restoreData} title="JSON 백업에서 데이터 복원">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            <span className="btn-lbl">복원</span>
+          </button>
+          <button style={{...S.actionBtn(false),borderColor:"rgba(255,255,255,0.3)",color:"rgba(255,255,255,0.9)"}} onClick={backupData} title="현재 데이터를 JSON으로 백업">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><polyline points="17 21 17 13 7 13 7 21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><polyline points="7 3 7 8 15 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            <span className="btn-lbl">백업</span>
+          </button>
+          <button style={S.actionBtn(false)} onClick={exportToExcel}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2"/><path d="M3 9h18M9 21V9" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+            <span className="btn-lbl">Excel 내보내기</span>
+          </button>
+          <button style={S.actionBtn(false)} onClick={()=>setModal({type:"import"})}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><polyline points="14 2 14 8 20 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><line x1="12" y1="18" x2="12" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><polyline points="9 15 12 18 15 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            <span className="btn-lbl">견적서 가져오기</span>
+          </button>
+        </div>
+      </header>
+
+      {/* ── 본문 레이아웃 ── */}
+      <div className="app-layout">
+
+      {/* ── 사이드바 ── */}
+      <nav className="sidebar">
+        <div className="sidebar-label">메뉴</div>
+        {[
+          {key:"orders",label:"수발주 현황",
+            icon:<svg className="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 12h6M9 16h4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+            sub:[
+              {label:"전체 발주",    action:()=>{setTab("orders");setFilterCompletion("전체");setPage(1);}},
+              {label:"납품 완료",    action:()=>{setTab("orders");setFilterCompletion("납품+계산서완료");setPage(1);}},
+              {label:"납품 대기",    action:()=>{setTab("orders");setFilterCompletion("납품대기전체");setPage(1);}},
+              {label:"발주 취소",    action:()=>{setTab("orders");setFilterCompletion("발주취소");setPage(1);}},
+            ],
+          },
+          {key:"sales",label:"매출 현황",
+            icon:<svg className="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M3 3v18h18M7 16l4-4 4 4 4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+            sub:[
+              {label:"월별",  action:()=>{setTab("sales");setSalesView("month");}},
+              {label:"주별",  action:()=>{setTab("sales");setSalesView("week");}},
+              {label:"LOB별", action:()=>{setTab("sales");setSalesView("lob");}},
+            ],
+          },
+          {key:"stats",label:"통계",
+            icon:<svg className="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 20h16M4 20V10m0 10h4V10H4v10zm8 0V4m-4 16h8V4h-4v16zm4 0h4v-6h-4v6z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+            sub:[
+              {label:"거래처별", action:()=>{setTab("stats");setStatsView("customer");}},
+              {label:"카테고리별",action:()=>{setTab("stats");setStatsView("category");}},
+              {label:"월별 추이", action:()=>{setTab("stats");setStatsView("monthly");}},
+            ],
+          },
+        ].map(item=>{
+          const isOpen=expandedNav.has(item.key);
+          const isActive=tab===item.key;
+          // 서브 아이템 중 현재 활성 상태 판단
+          const activeSubLabel=(()=>{
+            if(!isActive) return null;
+            if(item.key==="orders"){
+              const m={"전체":"전체 발주","납품+계산서완료":"납품 완료","납품대기전체":"납품 대기","발주취소":"발주 취소"};
+              return m[filterCompletion]||null;
+            }
+            if(item.key==="sales"){
+              const m={"month":"월별","week":"주별","lob":"LOB별"};
+              return m[salesView]||null;
+            }
+            if(item.key==="stats"){
+              const m={"customer":"거래처별","category":"카테고리별","monthly":"월별 추이"};
+              return m[statsView]||null;
+            }
+            return null;
+          })();
+
+          return(
+            <div key={item.key}>
+              <button className={`nav-item${isActive?" active":""}`}
+                onClick={()=>{
+                  setTab(item.key);
+                  setExpandedNav(prev=>
+                    (prev.has(item.key)&&tab===item.key)?prev:
+                    prev.has(item.key)?new Set():new Set([item.key])
+                  );
+                }}>
+                {item.icon}
+                <span style={{flex:1}}>{item.label}</span>
+                {item.sub&&(
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                    style={{opacity:0.4,transition:"transform 0.2s",transform:isOpen?"rotate(180deg)":"rotate(0deg)",flexShrink:0}}>
+                    <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                )}
+              </button>
+              {item.sub&&(
+                <div style={{
+                  overflow:"hidden",
+                  maxHeight:isOpen?`${item.sub.length*40+8}px`:"0px",
+                  opacity:isOpen?1:0,
+                  transition:"max-height 0.28s cubic-bezier(0.4,0,0.2,1), opacity 0.2s ease",
+                }}>
+                  <div style={{marginLeft:12,marginTop:2,marginBottom:4,display:"flex",flexDirection:"column",gap:1,borderLeft:"1.5px solid rgba(255,255,255,0.08)",paddingLeft:10}}>
+                    {item.sub.map(s=>(
+                      <button key={s.label}
+                        onClick={s.action}
+                        style={{
+                          border:"none",background:"transparent",cursor:"pointer",
+                          textAlign:"left",padding:"7px 10px",borderRadius:8,
+                          fontSize:12,fontWeight:activeSubLabel===s.label?600:400,
+                          color:activeSubLabel===s.label?"#5EEAD4":"rgba(255,255,255,0.75)",
+                          transition:"all 0.15s",
+                          backgroundColor:activeSubLabel===s.label?"rgba(13,148,136,0.12)":"transparent",
+                        }}
+                        onMouseEnter={e=>{ if(activeSubLabel!==s.label) e.currentTarget.style.color="#fff"; }}
+                        onMouseLeave={e=>{ if(activeSubLabel!==s.label) e.currentTarget.style.color="rgba(255,255,255,0.75)"; }}
+                      >{s.label}</button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </nav>
+
+      {/* ── 본문 ── */}
+      <main className="app-main">
+        {/* KPI 카드 — 수발주·배정 탭에서만 표시 */}
+        {tab==="orders"&&(
+        <div className="kpi-row">
+          {[
+            {label:"전체 발주",val:kpi.total,unit:"건",color:"#0D9488",bar:"#0D9488"},
+            {label:"납품 완료",val:kpi.done,unit:"건",color:"#059669",bar:"#059669"},
+            {label:"납품 대기",val:kpi.pending,unit:"건",color:"#B45309",bar:"#F59E0B"},
+            {label:"발주 취소",val:kpi.cancelled,unit:"건",color:"#9CA3AF",bar:"#D1D5DB"},
+          ].map(k=>(
+            <div key={k.label}
+              style={{...S.kpiCard,borderLeft:`3px solid ${k.bar}`}}>
+              <div style={{fontSize:10,fontWeight:600,color:"#9CA3AF",marginBottom:10,letterSpacing:"0.06em",textTransform:"uppercase"}}>{k.label}</div>
+              <div style={{display:"flex",alignItems:"baseline",gap:5}}>
+                <span style={{fontSize:40,fontWeight:800,color:k.color,letterSpacing:"-2px",lineHeight:1}}>{k.val}</span>
+                <span style={{fontSize:13,color:"#C4C6CC",fontWeight:400}}>{k.unit}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+        )}
+
+        {/* 수발주 현황 탭 */}
+        {tab==="orders"&&(
+          <>
+            {/* 필터 바 */}
+            <div style={S.filterBar}>
+              <input style={{...S.searchInp,flex:1,maxWidth:360}} value={search} onChange={e=>{setSearch(e.target.value);setPage(1);}} placeholder="🔍  품목명 / MPN / 거래처 검색"/>
+              <select value={filterMonth} onChange={e=>{setFilterMonth(e.target.value);setPage(1);}}
+                style={{...S.searchInp,color:filterMonth?"#0D9488":"#8B95A1",fontWeight:filterMonth?600:400,cursor:"pointer",width:"auto",height:34,boxSizing:"border-box",appearance:"none",WebkitAppearance:"none",paddingRight:24,backgroundImage:"url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%239CA3AF' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E\")",backgroundRepeat:"no-repeat",backgroundPosition:"right 8px center"}}>
+                <option value="">전체 월</option>
+                {availableMonths.map(m=>{
+                  const mo=m.slice(5);
+                  return <option key={m} value={m}>{+mo}월</option>;
+                })}
+              </select>
+              <span style={{marginLeft:"auto",fontSize:12,color:"#8B95A1",fontWeight:600}}>{filtered.length}건</span>
+              {selectedIds.size>0&&(
+                <>
+                  <button style={{border:"1px solid #5EEAD4",background:"#F0FDFA",color:"#0D9488",borderRadius:8,padding:"6px 14px",fontSize:12,cursor:"pointer",fontWeight:600,whiteSpace:"nowrap"}}
+                    onClick={()=>setBulkModal(true)}>⚡ 일괄 처리 ({selectedIds.size})</button>
+                  <button style={{border:"1.5px solid #F04452",background:"#FFE9EC",color:"#F04452",borderRadius:8,padding:"6px 14px",fontSize:12,cursor:"pointer",fontWeight:700,whiteSpace:"nowrap"}}
+                    onClick={deleteSelected}>🗑️ 선택 삭제 ({selectedIds.size})</button>
+                </>
+              )}
+              <button style={{border:"1.5px solid #E5E8EB",background:"#fff",color:"#8B95A1",borderRadius:8,padding:"6px 12px",fontSize:12,cursor:"pointer",fontWeight:600,whiteSpace:"nowrap"}}
+                onClick={deleteAll} title="현재 필터 결과 전체 삭제">전체 삭제</button>
+            </div>
+
+            {/* 테이블 */}
+            <div style={S.tableWrap}>
+              <div style={{overflowX:"auto"}}>
+                <table style={{width:"100%",borderCollapse:"collapse",minWidth:900}}>
+                  <thead style={S.thead}>
+                    <tr>
+                      <th style={{...S.th,width:36,textAlign:"center",padding:"8px 6px"}}>
+                        <input type="checkbox"
+                          checked={filtered.length>0&&filtered.every(r=>selectedIds.has(r.id))}
+                          onChange={e=>{
+                            if(e.target.checked) setSelectedIds(new Set(filtered.map(r=>r.id)));
+                            else setSelectedIds(new Set());
+                          }}
+                          style={{cursor:"pointer",width:14,height:14,accentColor:"#fff"}}
+                          title="전체 선택/해제"/>
+                      </th>
+                      <Th k="quoteDate" label="견적일"/>
+                      <Th k="orderDate" label="수발주일"/>
+                      <Th k="customer" label="매출처" filterable="customer"/>
+                      <Th k="category" label="구분" filterable="category"/>
+                      <Th k="mpn" label="MPN"/>
+                      <Th k="itemName" label="품목명"/>
+                      <Th k="qty" label="수량"/>
+                      <Th k="orderStatus" label="발주확인" filterable="orderStatus"/>
+                      <Th k="delivery" label="납품현황" filterable="delivery"/>
+                      <th style={S.th}>계산서</th>
+                      <th style={S.th}>서류</th>
+                      <th style={S.th}>관리</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pageData.length===0&&(
+                      <tr><td colSpan={13} style={{textAlign:"center",padding:40,color:"#8B95A1",fontSize:13}}>검색 결과가 없습니다.</td></tr>
+                    )}
+                    {pageData.map((row,ri)=>{
+                      const del=calcDelivery(row);
+                      const osSt=orderStatusStyle(row.orderStatus);
+                      const cs=getCatStyle(row.category);
+                      const doc=getDocBadge(row);
+                      const rowAtt=attachments[row.id]||{};
+                      const isComplete=row.orderStatus?.includes("납품 가능")&&del.type==="done"&&!!rowAtt.quote&&!!rowAtt.serial&&!!rowAtt.inspect;
+                      return(
+                        <tr key={row.id} style={{background:selectedIds.has(row.id)?"rgba(13,148,136,0.08)":isComplete?"rgba(124,58,237,0.07)":"transparent",borderLeft:selectedIds.has(row.id)?"3px solid #0D9488":isComplete?"3px solid #7C3AED":"3px solid transparent",transition:"background 0.15s"}}>
+                          <td style={{...S.td,textAlign:"center",padding:"8px 6px"}} onClick={e=>e.stopPropagation()}>
+                            <input type="checkbox"
+                              checked={selectedIds.has(row.id)}
+                              onChange={e=>{
+                                setSelectedIds(s=>{
+                                  const n=new Set(s);
+                                  e.target.checked?n.add(row.id):n.delete(row.id);
+                                  return n;
+                                });
+                              }}
+                              style={{cursor:"pointer",width:14,height:14,accentColor:"#0D9488"}}/>
+                          </td>
+                          <td style={S.td}>{row.quoteDate}</td>
+                          <td style={S.td}><span style={{fontSize:11,color:"#8B95A1"}}>
+                            {(()=>{
+                              const d=row.orderDate;
+                              const m=row.orderDateMemo;
+                              // 기존 텍스트값(백록 등) 호환: 날짜 형식 아니면 그냥 표시
+                              const isDate=d&&/^\d{4}-\d{2}-\d{2}$/.test(d);
+                              const dateStr=isDate?d:(!m?d:"");
+                              if(dateStr&&m) return `${dateStr} · ${m}`;
+                              return dateStr||m||"-";
+                            })()}
+                          </span></td>
+                          <td style={{...S.td,cursor:"pointer"}} onClick={()=>setModal({type:"detail",row})}><span style={{fontSize:11,fontWeight:600,color:"#191F28",maxWidth:110,display:"inline-block",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",textDecoration:"none"}} title={row.customer}>{row.customer.replace("비바리퍼블리카(토스코어)","토스코어")}</span></td>
+                          <td style={S.td}><span style={{...S.pill(cs.bg,cs.c)}}>{row.category}</span></td>
+                          <td style={{...S.td,cursor:"pointer"}} onClick={()=>setModal({type:"detail",row})}>
+                            <span style={{fontSize:11,fontWeight:700,color:"#0D9488",fontFamily:"monospace",textDecoration:"none"}}>{row.mpn}</span>
+                            {(row.subItems&&row.subItems.length>0)&&<span style={{fontSize:10,background:"#F0FDFA",color:"#0D9488",borderRadius:6,padding:"1px 6px",marginLeft:4,fontWeight:600}}>외 {row.subItems.length}종</span>}
+                          </td>
+                          <td style={{...S.td,maxWidth:200,cursor:"pointer"}} onClick={()=>setModal({type:"detail",row})}><span style={{fontSize:11,display:"block",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",textDecoration:"none"}} title={row.itemName}>{row.itemName}</span></td>
+                          <td style={{...S.td,textAlign:"right",fontWeight:700}}>{((row.qty||0)+(row.subItems||[]).reduce((s,i)=>s+(+i.qty||0),0)).toLocaleString()}</td>
+                          <td style={S.td}>
+                            <span style={{...S.pill(osSt.bg,osSt.color),fontSize:10,maxWidth:90,overflow:"hidden",textOverflow:"ellipsis",display:"inline-block",cursor:"pointer"}}
+                              title={row.orderStatus||"클릭하여 변경"}
+                              onClick={()=>setModal({type:"editStatus",row})}>
+                              {row.orderStatus||"—"}
+                            </span>
+                          </td>
+                          <td style={S.td}>
+                            <div style={{display:"flex",flexDirection:"column",gap:3,cursor:"pointer"}} onClick={()=>setModal({type:"delivery",row})}>
+                              <div style={{display:"flex",alignItems:"center",gap:4,flexWrap:"wrap"}}>
+                                <span style={{...S.pill(del.bg,del.color),fontSize:10}}>{del.label}</span>
+                                {(row.deliveries||[]).some(d=>d.fromOther)&&<span style={{fontSize:10,background:"#FFF4E0",color:"#FF8C00",borderRadius:10,padding:"2px 6px",fontWeight:700,border:"1px solid #FFD080"}}>🔄 타사</span>}
+                              </div>
+                              {del.pct>0&&del.pct<100&&(
+                                <div style={{height:3,background:"#E5E8EB",borderRadius:2,width:70}}>
+                                  <div style={{height:"100%",width:`${del.pct}%`,background:"#0D9488",borderRadius:2}}/>
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                          <td style={S.td}>
+                            {(()=>{
+                              // 배치별 계산서 우선, 없으면 주문 레벨 fallback
+                              const batchInvs=(row.deliveries||[]).filter(d=>d.invoiceDate||d.invoiceMemo);
+                              let label="",title="",hasAny=false;
+                              if(batchInvs.length>0){
+                                hasAny=true;
+                                const parts=batchInvs.map(d=>{
+                                  if(d.invoiceDate){const[,m,dd]=d.invoiceDate.split("-");const dl=`${parseInt(m)}/${parseInt(dd)} 발행`;return d.invoiceMemo?`${dl}·${d.invoiceMemo}`:dl;}
+                                  return d.invoiceMemo;
+                                });
+                                label=batchInvs.length===1?parts[0]:`계산서 ${batchInvs.length}건`;
+                                title=parts.join(" / ");
+                              } else {
+                                const hasDate=!!row.invoiceDate;
+                                const hasMemo=!!row.invoice;
+                                hasAny=hasDate||hasMemo;
+                                const dateLabel=hasDate?(()=>{const d=row.invoiceDate;const[,m,dd]=d.split("-");return `${parseInt(m)}/${parseInt(dd)} 발행`;})():"";
+                                label=hasDate?dateLabel:hasMemo?row.invoice:"";
+                                title=hasDate&&hasMemo?`${dateLabel} · ${row.invoice}`:label;
+                              }
+                              return hasAny
+                                ?<span style={{fontSize:11,padding:"3px 8px",borderRadius:10,background:"#E6F9EE",color:"#00843D",fontWeight:700,border:"1px solid #B8EDD1",cursor:"pointer",display:"inline-block",maxWidth:110,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}
+                                    title={title} onClick={()=>setModal({type:"editInvoice",row})}>✅ {label}</span>
+                                :<span style={{fontSize:11,padding:"3px 8px",borderRadius:10,background:"#F2F4F6",color:"#8B95A1",fontWeight:500,border:"1px solid #E5E8EB",cursor:"pointer"}}
+                                    onClick={()=>setModal({type:"editInvoice",row})}>미발행</span>;
+                            })()}
+                          </td>
+                          <td style={S.td}>
+                            <div style={{display:"flex",gap:3}}>
+                              {[["quote","견적"],["serial","시리얼"],["inspect","검수"]].map(([key,label])=>{
+                                const on=!!(attachments[row.id]||{})[key];
+                                return(
+                                  <span key={key}
+                                    onClick={()=>toggleAtt(row.id,key)}
+                                    title={on?"클릭하여 해제":"클릭하여 확인"}
+                                    style={{fontSize:11,padding:"2px 6px",borderRadius:6,cursor:"pointer",userSelect:"none",
+                                      background:on?"#E6F9EE":"#F2F4F6",
+                                      color:on?"#00B252":"#8B95A1",
+                                      fontWeight:on?700:400,
+                                      border:on?"1px solid #B8EDD1":"1px solid transparent",
+                                      transition:"all 0.15s"}}>
+                                    {on?"✓ ":""}{label}
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          </td>
+                          <td style={S.td}>
+                            <div style={{display:"flex",gap:4}}>
+                              <button style={S.iconBtn} title="상세" onClick={()=>setModal({type:"detail",row})}>🔍</button>
+                              <button style={S.iconBtn} title="수정" onClick={()=>setModal({type:"edit",row})}>✏️</button>
+                              <button style={S.iconBtn} title="삭제" onClick={()=>{if(confirm("삭제할까요?")) deleteOrder(row.id);}}>🗑️</button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* 페이지네이션 */}
+              <div style={{display:"flex",justifyContent:"center",alignItems:"center",gap:6,padding:"12px 16px",borderTop:"1px solid #F2F4F6"}}>
+                <button style={{border:"1px solid #E5E8EB",background:page===1?"#F2F4F6":"#fff",color:page===1?"#8B95A1":"#191F28",borderRadius:8,padding:"5px 12px",fontSize:12,cursor:page===1?"default":"pointer"}} disabled={page===1} onClick={()=>setPage(p=>p-1)}>← 이전</button>
+                {Array.from({length:Math.min(7,totalPages)},(_,i)=>{
+                  let p;
+                  if(totalPages<=7) p=i+1;
+                  else if(page<=4) p=i+1;
+                  else if(page>=totalPages-3) p=totalPages-6+i;
+                  else p=page-3+i;
+                  if(p<1||p>totalPages) return null;
+                  return <button key={p} style={{border:`1px solid ${p===page?"#0D9488":"#E8EAF0"}`,background:p===page?"#0D9488":"#fff",color:p===page?"#fff":"#6B7280",borderRadius:8,padding:"5px 10px",fontSize:12,cursor:"pointer",fontWeight:p===page?600:400}} onClick={()=>setPage(p)}>{p}</button>;
+                })}
+                <button style={{border:"1px solid #E5E8EB",background:page===totalPages?"#F2F4F6":"#fff",color:page===totalPages?"#8B95A1":"#191F28",borderRadius:8,padding:"5px 12px",fontSize:12,cursor:page===totalPages?"default":"pointer"}} disabled={page===totalPages} onClick={()=>setPage(p=>p+1)}>다음 →</button>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* 매출 현황 탭 */}
+        {tab==="sales"&&<SalesTab orders={orders} view={salesView} setView={setSalesView}/>}
+
+        {/* 통계 탭 */}
+        {tab==="stats"&&<StatsTab orders={orders} view={statsView}/>}
+      </main>
+      </div>{/* app-layout */}
+
+      {/* ── 모달들 ── */}
+      {modal?.type==="add"&&<AddEditModal onClose={()=>setModal(null)} onSave={saveOrder}/>}
+      {modal?.type==="edit"&&<AddEditModal initial={modal.row} onClose={()=>setModal(null)} onSave={saveOrder}/>}
+      {modal?.type==="delivery"&&<DeliveryModal row={modal.row} onClose={()=>setModal(null)} onSave={dels=>saveDeliveries(modal.row.id,dels)}/>}
+      {modal?.type==="detail"&&<DetailModal row={modal.row} onClose={()=>setModal(null)}/>}
+      {modal?.type==="import"&&<ImportModal onClose={()=>setModal(null)} onImport={importOrders}/>}
+      {bulkModal&&<BulkModal cnt={selectedIds.size} onClose={()=>setBulkModal(false)} onApply={applyBulk}/>}
+      {modal?.type==="editInvoice"&&<InvoiceModal row={modal.row} onClose={()=>setModal(null)} onSave={(invoiceDate,invoice)=>{patchOrder(modal.row.id,{invoiceDate,invoice});setModal(null);showToast("계산서 정보가 저장되었습니다.");}} onClear={()=>{patchOrder(modal.row.id,{invoiceDate:"",invoice:""});setModal(null);showToast("계산서 정보가 초기화되었습니다.","error");}}/>}
+      <ToastContainer toasts={toasts}/>
+
+      {modal?.type==="editStatus"&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.3)",backdropFilter:"blur(12px)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setModal(null)}>
+          <div style={{background:"rgba(255,255,255,0.90)",backdropFilter:"blur(24px) saturate(160%)",WebkitBackdropFilter:"blur(24px) saturate(160%)",borderRadius:16,padding:"20px 24px",width:"min(320px,90vw)",boxShadow:"0 16px 48px rgba(0,0,0,0.16),inset 0 1px 0 rgba(255,255,255,0.9)",border:"1px solid rgba(255,255,255,0.6)"}} onClick={e=>e.stopPropagation()}>
+            <div style={{fontSize:14,fontWeight:700,marginBottom:14}}>발주 상태 변경</div>
+            {ORDER_STATUS_OPTIONS.map(s=>{
+              const st=orderStatusStyle(s);
+              const active=modal.row.orderStatus===s;
+              return <button key={s} style={{display:"block",width:"100%",border:`1.5px solid ${active?st.color:"#E5E8EB"}`,background:active?st.bg:"#fff",color:active?st.color:"#191F28",borderRadius:10,padding:"10px 14px",fontSize:13,fontWeight:active?700:400,cursor:"pointer",marginBottom:8,textAlign:"left"}}
+                onClick={()=>{patchOrder(modal.row.id,{orderStatus:s});setModal(null);showToast(`발주 상태가 "${s}"으로 변경되었습니다.`);}}>{s}</button>;
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
