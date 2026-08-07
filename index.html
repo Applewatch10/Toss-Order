@@ -17,7 +17,7 @@
       font-family:'Inter','Apple SD Gothic Neo','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;
       background:#E8ECF2;
       background-image:
-        radial-gradient(ellipse 80% 65% at 8% 30%, rgba(13,148,136,0.22) 0%, transparent 60%),
+        radial-gradient(ellipse 80% 65% at 8% 30%, rgba(79,70,229,0.22) 0%, transparent 60%),
         radial-gradient(ellipse 60% 60% at 92% 15%, rgba(124,58,237,0.14) 0%, transparent 60%),
         radial-gradient(ellipse 55% 55% at 55% 92%, rgba(99,102,241,0.12) 0%, transparent 60%);
       background-attachment:fixed;
@@ -29,7 +29,7 @@
     ::-webkit-scrollbar-thumb{background:rgba(0,0,0,0.15);border-radius:10px;}
     ::-webkit-scrollbar-thumb:hover{background:rgba(0,0,0,0.25);}
     input,select,textarea,button{font-family:inherit;}
-    tbody tr:hover td{background:rgba(13,148,136,0.05)!important;}
+    tbody tr:hover td{background:rgba(79,70,229,0.05)!important;}
     @keyframes toastIn{from{opacity:0;transform:translateY(12px) scale(0.96);}to{opacity:1;transform:translateY(0) scale(1);}}
 
     /* ── 글래스 공통 ── */
@@ -78,7 +78,7 @@
       transition:background 0.15s,color 0.15s;
     }
     .nav-item:hover{background:rgba(255,255,255,0.07);color:#fff;}
-    .nav-item.active{background:rgba(13,148,136,0.18);color:#5EEAD4;font-weight:600;}
+    .nav-item.active{background:rgba(79,70,229,0.18);color:#A5B4FC;font-weight:600;}
     .nav-icon{opacity:0.45;transition:opacity 0.15s;flex-shrink:0;}
     .nav-item.active .nav-icon{opacity:1;}
 
@@ -114,7 +114,7 @@
       color:rgba(255,255,255,0.4);font-size:10px;font-weight:500;
       font-family:inherit;transition:color 0.15s;
     }
-    .mob-nav-btn.active{color:#5EEAD4;}
+    .mob-nav-btn.active{color:#A5B4FC;}
     .mob-nav-btn svg{opacity:0.5;}
     .mob-nav-btn.active svg{opacity:1;}
   </style>
@@ -265,20 +265,20 @@ function calcDelivery(row){
   const pct=total>0?Math.min(100,Math.round(done/total*100)):0;
   if(done>=total&&total>0) return {label:`전체 완료 (${done})`,pct:100,done,total,color:"#00B252",bg:"#E6F9EE",type:"done"};
   if(done>0) return {label:`${done}/${total} 완료`,pct,done,total,color:"#FF8C00",bg:"#FFF4E0",type:"partial"};
-  if(ds.some(d=>d.status==="대기")) return {label:`${total}개 납품 예정`,pct:0,done,total,color:"#14B8A6",bg:"#F0FDFA",type:"pending"};
+  if(ds.some(d=>d.status==="대기")) return {label:`${total}개 납품 예정`,pct:0,done,total,color:"#6366F1",bg:"#EEF2FF",type:"pending"};
   return {label:"납품 전",pct:0,done,total,color:"#8B95A1",bg:"#F2F4F6",type:"none"};
 }
 function orderStatusStyle(s){
   if(!s) return {bg:"#F2F4F6",color:"#8B95A1"};
   if(s.includes("취소")) return {bg:"#FFE9EC",color:"#F04452"};
   if(s.includes("납품 가능")) return {bg:"#E6F9EE",color:"#00B252"};
-  if(s.includes("발주 완료")) return {bg:"#F0FDFA",color:"#0D9488"};
+  if(s.includes("발주 완료")) return {bg:"#EEF2FF",color:"#4F46E5"};
   if(s.includes("홀딩")) return {bg:"#FFF4E0",color:"#FF8C00"};
   return {bg:"#F2F4F6",color:"#8B95A1"};
 }
 function getCatStyle(cat){
-  const m={Mac:{bg:"#0D9488",c:"#fff"},iPad:{bg:"#14B8A6",c:"#fff"},ACC:{bg:"#5EEAD4",c:"#0F766E"},DISP:{bg:"#0F766E",c:"#fff"}};
-  return m[cat]||{bg:"#99F6E4",c:"#0F766E"};
+  const m={Mac:{bg:"#4F46E5",c:"#fff"},iPad:{bg:"#6366F1",c:"#fff"},ACC:{bg:"#A5B4FC",c:"#3730A3"},DISP:{bg:"#3730A3",c:"#fff"}};
+  return m[cat]||{bg:"#C7D2FE",c:"#3730A3"};
 }
 
 /* ── 견적서 엑셀 스마트 파서 ── */
@@ -435,7 +435,7 @@ function DeliveryModal({row, onClose, onSave}){
   }
   function handleSave(){ onSave(deliveries.map(d=>({...d,qty:getBatchQty(d)}))); }
 
-  const sc={완료:{bg:"#E6F9EE",c:"#00B252"},대기:{bg:"#F0FDFA",c:"#0D9488"},취소:{bg:"#FFE9EC",c:"#F04452"},홀딩:{bg:"#FFF4E0",c:"#FF8C00"}};
+  const sc={완료:{bg:"#E6F9EE",c:"#00B252"},대기:{bg:"#EEF2FF",c:"#4F46E5"},취소:{bg:"#FFE9EC",c:"#F04452"},홀딩:{bg:"#FFF4E0",c:"#FF8C00"}};
 
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.35)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(12px)"}} onClick={onClose}>
@@ -472,36 +472,36 @@ function DeliveryModal({row, onClose, onSave}){
             const batchTotal=getBatchQty(d);
             const batchAllDone=d.status==="완료"&&d.date&&(d.invoiceDate||d.invoiceMemo);
             return(
-              <div key={d.id} style={{border:`1.5px solid ${batchAllDone?"#0D9488":d.status==="완료"?"#00B252":d.status==="취소"?"#F04452":"#99F6E4"}`,borderRadius:12,padding:"14px 16px",marginBottom:10,background:batchAllDone?"rgba(13,148,136,0.10)":"rgba(255,255,255,0.5)",transition:"all 0.3s"}}>
+              <div key={d.id} style={{border:`1.5px solid ${batchAllDone?"#4F46E5":d.status==="완료"?"#00B252":d.status==="취소"?"#F04452":"#C7D2FE"}`,borderRadius:12,padding:"14px 16px",marginBottom:10,background:batchAllDone?"rgba(79,70,229,0.10)":"rgba(255,255,255,0.5)",transition:"all 0.3s"}}>
 
                 {/* 배치 헤더 */}
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
                   <div style={{display:"flex",alignItems:"center",gap:8}}>
-                    <div style={{width:24,height:24,borderRadius:"50%",background:"#0D9488",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,flexShrink:0}}>{i+1}</div>
+                    <div style={{width:24,height:24,borderRadius:"50%",background:"#4F46E5",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,flexShrink:0}}>{i+1}</div>
                     <span style={{fontSize:13,fontWeight:700}}>납품 배치 {i+1}</span>
-                    <span style={{fontSize:11,background:"#F0FDFA",color:"#0D9488",borderRadius:10,padding:"2px 8px",fontWeight:700}}>합계 {batchTotal}개</span>
+                    <span style={{fontSize:11,background:"#EEF2FF",color:"#4F46E5",borderRadius:10,padding:"2px 8px",fontWeight:700}}>합계 {batchTotal}개</span>
                   </div>
                   <div style={{display:"flex",gap:6}}>
-                    <button style={{border:"1px solid #5EEAD4",background:"#F0FDFA",color:"#0D9488",borderRadius:6,padding:"4px 10px",fontSize:12,cursor:"pointer",fontWeight:600}} onClick={()=>autoFillBatch(d.id)} title="잔여 수량 자동 입력">⚡ 일괄입력</button>
+                    <button style={{border:"1px solid #A5B4FC",background:"#EEF2FF",color:"#4F46E5",borderRadius:6,padding:"4px 10px",fontSize:12,cursor:"pointer",fontWeight:600}} onClick={()=>autoFillBatch(d.id)} title="잔여 수량 자동 입력">⚡ 일괄입력</button>
                     {undoState&&<button style={{border:"1.5px solid #8B95A1",background:"#F2F4F6",color:"#4A5568",borderRadius:6,padding:"4px 10px",fontSize:12,cursor:"pointer",fontWeight:700}} onClick={undoFill}>↩ 취소</button>}
                     <button style={{border:"none",background:"#FFE9EC",color:"#F04452",borderRadius:6,padding:"4px 10px",fontSize:12,cursor:"pointer",fontWeight:600}} onClick={()=>removeD(d.id)}>삭제</button>
                   </div>
                 </div>
 
                 {/* 품목별 수량 */}
-                <div style={{background:"#F0FDFA",borderRadius:8,padding:"10px 12px",marginBottom:10,border:"1px solid #99F6E4"}}>
-                  <div style={{fontSize:11,fontWeight:700,color:"#0D9488",marginBottom:8}}>품목별 납품 수량 <span style={{fontWeight:400,color:"#8B95A1"}}>(0개 = 이번 배치 미포함)</span></div>
+                <div style={{background:"#EEF2FF",borderRadius:8,padding:"10px 12px",marginBottom:10,border:"1px solid #C7D2FE"}}>
+                  <div style={{fontSize:11,fontWeight:700,color:"#4F46E5",marginBottom:8}}>품목별 납품 수량 <span style={{fontWeight:400,color:"#8B95A1"}}>(0개 = 이번 배치 미포함)</span></div>
                   {(d.items||[]).map((item,idx)=>{
                     const allocatedOthers=deliveries.filter(od=>od.id!==d.id).reduce((s,od)=>{const oi=(od.items||[]).find(i=>i.mpn===item.mpn);return s+(oi?+oi.qty||0:0);},0);
                     const itemRemain=Math.max(0,(item.ordQty||0)-allocatedOthers);
                     return(
                     <div key={idx} style={{display:"flex",alignItems:"center",gap:6,marginBottom:idx<d.items.length-1?6:0}}>
-                      <span style={{fontSize:10,color:"#0D9488",fontWeight:700,fontFamily:"monospace",width:100,flexShrink:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={item.mpn}>{item.mpn}</span>
+                      <span style={{fontSize:10,color:"#4F46E5",fontWeight:700,fontFamily:"monospace",width:100,flexShrink:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={item.mpn}>{item.mpn}</span>
                       <span style={{flex:1,fontSize:11,color:"#191F28",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",minWidth:0}} title={item.itemName}>{item.itemName}</span>
                       <span style={{fontSize:11,color:"#8B95A1",flexShrink:0,whiteSpace:"nowrap"}}>/{item.ordQty||0}개</span>
-                      <button style={{border:"1px solid #99F6E4",background:"#F0FDFA",color:"#0D9488",borderRadius:5,padding:"3px 7px",fontSize:10,cursor:"pointer",fontWeight:700,flexShrink:0,whiteSpace:"nowrap"}} onClick={()=>{saveUndo();updateItem(d.id,idx,itemRemain);}}>일괄</button>
+                      <button style={{border:"1px solid #C7D2FE",background:"#EEF2FF",color:"#4F46E5",borderRadius:5,padding:"3px 7px",fontSize:10,cursor:"pointer",fontWeight:700,flexShrink:0,whiteSpace:"nowrap"}} onClick={()=>{saveUndo();updateItem(d.id,idx,itemRemain);}}>일괄</button>
                       <input
-                        style={{border:`1.5px solid ${+item.qty>0?"#0D9488":"#E5E8EB"}`,borderRadius:6,padding:"5px 8px",fontSize:13,outline:"none",width:68,textAlign:"right",flexShrink:0,fontWeight:+item.qty>0?700:400,color:+item.qty>0?"#0D9488":"#191F28",background:+item.qty>0?"#F0FDFA":"#fff"}}
+                        style={{border:`1.5px solid ${+item.qty>0?"#4F46E5":"#E5E8EB"}`,borderRadius:6,padding:"5px 8px",fontSize:13,outline:"none",width:68,textAlign:"right",flexShrink:0,fontWeight:+item.qty>0?700:400,color:+item.qty>0?"#4F46E5":"#191F28",background:+item.qty>0?"#EEF2FF":"#fff"}}
                         type="number" min="0"
                         value={item.qty}
                         onChange={e=>updateItem(d.id,idx,e.target.value)}/>
@@ -510,7 +510,7 @@ function DeliveryModal({row, onClose, onSave}){
                     );
                   })}
                   {(d.items||[]).length>1&&(
-                    <div style={{display:"flex",justifyContent:"flex-end",marginTop:8,paddingTop:6,borderTop:"1px solid #99F6E4",fontSize:12,fontWeight:700,color:"#0D9488"}}>
+                    <div style={{display:"flex",justifyContent:"flex-end",marginTop:8,paddingTop:6,borderTop:"1px solid #C7D2FE",fontSize:12,fontWeight:700,color:"#4F46E5"}}>
                       이번 배치 합계: {batchTotal}개
                     </div>
                   )}
@@ -539,7 +539,7 @@ function DeliveryModal({row, onClose, onSave}){
                 </div>
 
                 {/* 세금계산서 */}
-                <div style={{background:d.invoiceDate||d.invoiceMemo?"#F0FFF6":"#F0FDFA",border:`1.5px solid ${d.invoiceDate||d.invoiceMemo?"#B8EDD1":"#E5E8EB"}`,borderRadius:8,padding:"10px 12px",marginBottom:10}}>
+                <div style={{background:d.invoiceDate||d.invoiceMemo?"#F0FFF6":"#EEF2FF",border:`1.5px solid ${d.invoiceDate||d.invoiceMemo?"#B8EDD1":"#E5E8EB"}`,borderRadius:8,padding:"10px 12px",marginBottom:10}}>
                   <div style={{fontSize:11,fontWeight:700,color:d.invoiceDate||d.invoiceMemo?"#00843D":"#8B95A1",marginBottom:8}}>🧾 세금계산서</div>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
                     <div>
@@ -554,9 +554,9 @@ function DeliveryModal({row, onClose, onSave}){
                 </div>
 
                 {/* 타사 */}
-                <div style={{background:d.fromOther?"#FFF4E0":"#F0FDFA",border:`1px solid ${d.fromOther?"#FFD080":"#E5E8EB"}`,borderRadius:8,padding:"8px 12px",display:"flex",alignItems:"center",gap:8,cursor:"pointer"}}
+                <div style={{background:d.fromOther?"#FFF4E0":"#EEF2FF",border:`1px solid ${d.fromOther?"#FFD080":"#E5E8EB"}`,borderRadius:8,padding:"8px 12px",display:"flex",alignItems:"center",gap:8,cursor:"pointer"}}
                   onClick={()=>updateD(d.id,"fromOther",!d.fromOther)}>
-                  <div style={{width:18,height:18,borderRadius:4,border:`2px solid ${d.fromOther?"#FF8C00":"#99F6E4"}`,background:d.fromOther?"#FF8C00":"#fff",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                  <div style={{width:18,height:18,borderRadius:4,border:`2px solid ${d.fromOther?"#FF8C00":"#C7D2FE"}`,background:d.fromOther?"#FF8C00":"#fff",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                     {d.fromOther&&<span style={{color:"#fff",fontSize:11,fontWeight:900}}>✓</span>}
                   </div>
                   <span style={{fontSize:12,fontWeight:d.fromOther?700:400,color:d.fromOther?"#CC6600":"#8B95A1"}}>🔄 타사 제품 — 다른 계열사 배정분에서 당겨온 수량</span>
@@ -564,10 +564,10 @@ function DeliveryModal({row, onClose, onSave}){
               </div>
             );
           })}
-          <button style={{border:"2px dashed #99F6E4",background:"#F0FDFA",color:"#14B8A6",borderRadius:12,padding:"10px",width:"100%",fontSize:13,fontWeight:600,cursor:"pointer",marginTop:4}} onClick={addBatch}>+ 납품 배치 추가</button>
+          <button style={{border:"2px dashed #C7D2FE",background:"#EEF2FF",color:"#6366F1",borderRadius:12,padding:"10px",width:"100%",fontSize:13,fontWeight:600,cursor:"pointer",marginTop:4}} onClick={addBatch}>+ 납품 배치 추가</button>
           <div style={{display:"flex",gap:10,justifyContent:"flex-end",paddingTop:16,marginTop:8,borderTop:"1px solid #F2F4F6"}}>
             <button style={{border:"1px solid #E5E8EB",background:"#fff",color:"#8B95A1",borderRadius:10,padding:"10px 22px",fontSize:14,fontWeight:600,cursor:"pointer"}} onClick={onClose}>취소</button>
-            <button style={{border:"none",background:"#0D9488",color:"#fff",borderRadius:10,padding:"10px 28px",fontSize:14,fontWeight:700,cursor:"pointer"}} onClick={handleSave}>저장</button>
+            <button style={{border:"none",background:"#4F46E5",color:"#fff",borderRadius:10,padding:"10px 28px",fontSize:14,fontWeight:700,cursor:"pointer"}} onClick={handleSave}>저장</button>
           </div>
         </div>
       </div>
@@ -625,12 +625,12 @@ function AddEditModal({initial, onClose, onSave}){
 <div style={grp}><label style={lbl}>특이사항</label><textarea style={{...inp,minHeight:60,resize:"vertical"}} value={form.notes} onChange={e=>set("notes",e.target.value)}/></div>
 
           {/* 추가 품목 */}
-          <div style={{borderTop:"1.5px dashed #99F6E4",paddingTop:16,marginTop:4}}>
+          <div style={{borderTop:"1.5px dashed #C7D2FE",paddingTop:16,marginTop:4}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
               <div style={{fontSize:13,fontWeight:700,color:"#191F28"}}>추가 품목 <span style={{fontSize:11,color:"#8B95A1",fontWeight:400}}>({subItems.length}종) — 목록에 "MPN 외 N종"으로 표시</span></div>
-              <button style={{border:"1.5px solid #99F6E4",background:"#F0FDFA",color:"#0D9488",borderRadius:8,padding:"5px 12px",fontSize:12,fontWeight:700,cursor:"pointer"}} onClick={addSubItem}>+ 품목 추가</button>
+              <button style={{border:"1.5px solid #C7D2FE",background:"#EEF2FF",color:"#4F46E5",borderRadius:8,padding:"5px 12px",fontSize:12,fontWeight:700,cursor:"pointer"}} onClick={addSubItem}>+ 품목 추가</button>
             </div>
-            {subItems.length===0&&<div style={{fontSize:12,color:"#8B95A1",textAlign:"center",padding:"8px 0",background:"#F0FDFA",borderRadius:8}}>추가 품목 없음</div>}
+            {subItems.length===0&&<div style={{fontSize:12,color:"#8B95A1",textAlign:"center",padding:"8px 0",background:"#EEF2FF",borderRadius:8}}>추가 품목 없음</div>}
             {subItems.map((si,idx)=>(
               <div key={si.id} style={{border:"1px solid #E5E8EB",borderRadius:10,padding:"10px 12px",marginBottom:8,background:"#F5FFFE"}}>
                 <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
@@ -648,7 +648,7 @@ function AddEditModal({initial, onClose, onSave}){
 
           <div style={{display:"flex",gap:10,justifyContent:"flex-end",paddingTop:12,marginTop:4,borderTop:"1px solid #F2F4F6"}}>
             <button style={{border:"1px solid #E5E8EB",background:"#fff",color:"#8B95A1",borderRadius:10,padding:"10px 22px",fontSize:14,fontWeight:600,cursor:"pointer"}} onClick={onClose}>취소</button>
-            <button style={{border:"none",background:"#0D9488",color:"#fff",borderRadius:10,padding:"10px 28px",fontSize:14,fontWeight:700,cursor:"pointer"}} onClick={handleSave}>저장</button>
+            <button style={{border:"none",background:"#4F46E5",color:"#fff",borderRadius:10,padding:"10px 28px",fontSize:14,fontWeight:700,cursor:"pointer"}} onClick={handleSave}>저장</button>
           </div>
         </div>
       </div>
@@ -696,13 +696,13 @@ function DetailModal({row, onClose}){
           <div style={{fontSize:12,opacity:0.85}}>{row.itemName}{subItems.length>0&&` 외 ${subItems.length}종`} · 총 {totalQty.toLocaleString()}개</div>
         </div>
         <div style={{padding:"20px 24px"}}>
-          <div style={{background:"#F0FDFA",borderRadius:12,padding:14,marginBottom:16}}>
+          <div style={{background:"#EEF2FF",borderRadius:12,padding:14,marginBottom:16}}>
             <div style={{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:6}}>
               <span style={{color:"#8B95A1"}}>납품 진행률</span>
               <span style={{fontWeight:700,color:del.color}}>{del.label}</span>
             </div>
             <div style={{height:8,background:"#E5E8EB",borderRadius:4,overflow:"hidden"}}>
-              <div style={{height:"100%",width:`${del.pct}%`,background:"linear-gradient(90deg,#0D9488,#00B252)",borderRadius:4}}/>
+              <div style={{height:"100%",width:`${del.pct}%`,background:"linear-gradient(90deg,#4F46E5,#00B252)",borderRadius:4}}/>
             </div>
           </div>
 
@@ -714,21 +714,21 @@ function DetailModal({row, onClose}){
                 <span>MPN</span><span>품목명</span><span style={{textAlign:"right"}}>수량</span>
               </div>
               <div style={{display:"grid",gridTemplateColumns:"120px 1fr 60px",padding:"10px 12px",fontSize:12,borderTop:"1px solid #F2F4F6",background:"#fff"}}>
-                <span style={{color:"#0D9488",fontWeight:700,fontFamily:"monospace",fontSize:11}}>{row.mpn}</span>
+                <span style={{color:"#4F46E5",fontWeight:700,fontFamily:"monospace",fontSize:11}}>{row.mpn}</span>
                 <span style={{color:"#191F28"}}>{row.itemName}</span>
                 <span style={{textAlign:"right",fontWeight:700}}>{(row.qty||0).toLocaleString()}</span>
               </div>
               {subItems.map((si,i)=>(
                 <div key={i} style={{display:"grid",gridTemplateColumns:"120px 1fr 60px",padding:"10px 12px",fontSize:12,borderTop:"1px solid #F2F4F6",background:i%2===0?"#F5FFFE":"#fff"}}>
-                  <span style={{color:"#14B8A6",fontWeight:700,fontFamily:"monospace",fontSize:11}}>{si.mpn}</span>
+                  <span style={{color:"#6366F1",fontWeight:700,fontFamily:"monospace",fontSize:11}}>{si.mpn}</span>
                   <span style={{color:"#191F28"}}>{si.itemName}</span>
                   <span style={{textAlign:"right",fontWeight:700}}>{(+si.qty||0).toLocaleString()}</span>
                 </div>
               ))}
               {subItems.length>0&&(
-                <div style={{display:"grid",gridTemplateColumns:"120px 1fr 60px",padding:"8px 12px",fontSize:12,borderTop:"1.5px solid #99F6E4",background:"#F0FDFA",fontWeight:700}}>
-                  <span style={{color:"#0D9488",gridColumn:"span 2"}}>합계</span>
-                  <span style={{textAlign:"right",color:"#0D9488"}}>{totalQty.toLocaleString()}</span>
+                <div style={{display:"grid",gridTemplateColumns:"120px 1fr 60px",padding:"8px 12px",fontSize:12,borderTop:"1.5px solid #C7D2FE",background:"#EEF2FF",fontWeight:700}}>
+                  <span style={{color:"#4F46E5",gridColumn:"span 2"}}>합계</span>
+                  <span style={{textAlign:"right",color:"#4F46E5"}}>{totalQty.toLocaleString()}</span>
                 </div>
               )}
             </div>
@@ -741,7 +741,7 @@ function DetailModal({row, onClose}){
             </div>
           ))}
           <div style={{paddingTop:16,textAlign:"right"}}>
-            <button style={{border:"none",background:"#0D9488",color:"#fff",borderRadius:10,padding:"10px 28px",fontSize:14,fontWeight:700,cursor:"pointer"}} onClick={onClose}>닫기</button>
+            <button style={{border:"none",background:"#4F46E5",color:"#fff",borderRadius:10,padding:"10px 28px",fontSize:14,fontWeight:700,cursor:"pointer"}} onClick={onClose}>닫기</button>
           </div>
         </div>
       </div>
@@ -820,7 +820,7 @@ function ImportModal({onClose, onImport}){
         <div style={{padding:"20px 24px"}}>
           {step===1&&(
             <>
-              <div style={{border:`2px dashed ${dragging?"#0D9488":"#99F6E4"}`,borderRadius:16,padding:"40px 20px",textAlign:"center",background:dragging?"#F0FDFA":"#F0FDFA",cursor:"pointer",transition:"all 0.2s"}}
+              <div style={{border:`2px dashed ${dragging?"#4F46E5":"#C7D2FE"}`,borderRadius:16,padding:"40px 20px",textAlign:"center",background:dragging?"#EEF2FF":"#EEF2FF",cursor:"pointer",transition:"all 0.2s"}}
                 onClick={()=>fileRef.current.click()} onDragOver={e=>{e.preventDefault();setDragging(true);}} onDragLeave={()=>setDragging(false)} onDrop={handleDrop}>
                 <div style={{fontSize:36,marginBottom:12}}>📎</div>
                 <div style={{fontSize:15,fontWeight:700,color:"#191F28",marginBottom:6}}>파일을 드래그하거나 클릭하세요</div>
@@ -831,10 +831,10 @@ function ImportModal({onClose, onImport}){
           )}
           {step===2&&parsed&&(
             <>
-              <div style={{background:"#F0FDFA",borderRadius:12,padding:14,marginBottom:16}}>
+              <div style={{background:"#EEF2FF",borderRadius:12,padding:14,marginBottom:16}}>
                 <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
                   <div style={{fontSize:13,fontWeight:700}}>파싱 결과</div>
-                  <span style={{fontSize:11,background:"#F0FDFA",color:"#0D9488",borderRadius:20,padding:"2px 10px",fontWeight:700}}>
+                  <span style={{fontSize:11,background:"#EEF2FF",color:"#4F46E5",borderRadius:20,padding:"2px 10px",fontWeight:700}}>
                     {parsed.items.length === 1 ? "1개 품목" : `${parsed.items.length}개 품목 → 1건으로 묶음`}
                   </span>
                 </div>
@@ -846,7 +846,7 @@ function ImportModal({onClose, onImport}){
                 <div style={{maxHeight:140,overflowY:"auto",marginTop:8}}>
                   {parsed.items.map((it,i)=>(
                     <div key={i} style={{display:"flex",justifyContent:"space-between",fontSize:12,padding:"5px 0",borderBottom:"1px solid #F2F4F6"}}>
-                      <span style={{color:"#0D9488",fontWeight:600,width:90,flexShrink:0}}>{it.mpn}</span>
+                      <span style={{color:"#4F46E5",fontWeight:600,width:90,flexShrink:0}}>{it.mpn}</span>
                       <span style={{flex:1,color:"#191F28",margin:"0 8px"}}>{it.itemName}</span>
                       <span style={{color:"#8B95A1",flexShrink:0}}>{it.qty}개</span>
                     </div>
@@ -860,7 +860,7 @@ function ImportModal({onClose, onImport}){
                   <div style={{display:"flex",gap:4}}>
                     {CATEGORIES.map(cat=>(
                       <button key={cat} onClick={()=>setItemCategories(itemCategories.map(()=>cat))}
-                        style={{fontSize:10,padding:"2px 8px",borderRadius:12,border:"1px solid #99F6E4",background:"#F0FDFA",color:"#0D9488",cursor:"pointer",fontWeight:600}}>
+                        style={{fontSize:10,padding:"2px 8px",borderRadius:12,border:"1px solid #C7D2FE",background:"#EEF2FF",color:"#4F46E5",cursor:"pointer",fontWeight:600}}>
                         전체 {cat}
                       </button>
                     ))}
@@ -872,10 +872,10 @@ function ImportModal({onClose, onImport}){
                   </div>
                   {parsed.items.map((it,i)=>(
                     <div key={i} style={{display:"grid",gridTemplateColumns:"90px 1fr 80px",padding:"7px 10px",fontSize:12,borderTop:"1px solid #F2F4F6",alignItems:"center"}}>
-                      <span style={{color:"#0D9488",fontWeight:600,fontFamily:"monospace",fontSize:11,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{it.mpn}</span>
+                      <span style={{color:"#4F46E5",fontWeight:600,fontFamily:"monospace",fontSize:11,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{it.mpn}</span>
                       <span style={{color:"#191F28",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",paddingRight:8}}>{it.itemName}</span>
                       <select value={itemCategories[i]||"Mac"} onChange={e=>{const c=[...itemCategories];c[i]=e.target.value;setItemCategories(c);}}
-                        style={{border:"1.5px solid #99F6E4",borderRadius:6,padding:"3px 4px",fontSize:11,outline:"none",background:"#fff"}}>
+                        style={{border:"1.5px solid #C7D2FE",borderRadius:6,padding:"3px 4px",fontSize:11,outline:"none",background:"#fff"}}>
                         {CATEGORIES.map(c=><option key={c}>{c}</option>)}
                       </select>
                     </div>
@@ -888,7 +888,7 @@ function ImportModal({onClose, onImport}){
                   <select style={inp} value={mapping.customer} onChange={e=>setMapping(m=>({...m,customer:e.target.value}))}><option value="">-- 선택 --</option>{CUSTOMERS.map(c=><option key={c}>{c}</option>)}</select>
                 </div>
                 <div style={{marginBottom:12}}>
-                  <label style={lbl}>견적일 {parsed.quoteDate&&<span style={{color:"#0D9488"}}>(자동: {parsed.quoteDate})</span>}</label>
+                  <label style={lbl}>견적일 {parsed.quoteDate&&<span style={{color:"#4F46E5"}}>(자동: {parsed.quoteDate})</span>}</label>
                   <input style={inp} type="date" value={mapping.quoteDate} onChange={e=>{setMapping(m=>({...m,quoteDate:e.target.value}));e.target.blur();}}/>
                 </div>
                 <div style={{marginBottom:12}}>
@@ -906,7 +906,7 @@ function ImportModal({onClose, onImport}){
               </div>
               <div style={{display:"flex",gap:10,justifyContent:"flex-end",paddingTop:8,borderTop:"1px solid #F2F4F6"}}>
                 <button style={{border:"1px solid #E5E8EB",background:"#fff",color:"#8B95A1",borderRadius:10,padding:"10px 22px",fontSize:14,fontWeight:600,cursor:"pointer"}} onClick={()=>setStep(1)}>← 다시</button>
-                <button style={{border:"none",background:"#0D9488",color:"#fff",borderRadius:10,padding:"10px 28px",fontSize:14,fontWeight:700,cursor:"pointer"}} onClick={doImport}>가져오기</button>
+                <button style={{border:"none",background:"#4F46E5",color:"#fff",borderRadius:10,padding:"10px 28px",fontSize:14,fontWeight:700,cursor:"pointer"}} onClick={doImport}>가져오기</button>
               </div>
             </>
           )}
@@ -985,7 +985,7 @@ function AttachModal({row, attachments, onClose, onSave}){
                     <button style={{border:"1px solid #FF8C00",background:"#FFF4E0",color:"#FF8C00",borderRadius:8,padding:"5px 12px",fontSize:12,fontWeight:600,cursor:"pointer"}} onClick={undoSkipSerial}>↩ 되돌리기</button>
                   ):(
                     <div style={{display:"flex",gap:6}}>
-                      <button style={{border:"1.5px solid #99F6E4",background:"#F0FDFA",color:"#0D9488",borderRadius:8,padding:"6px 14px",fontSize:12,fontWeight:600,cursor:"pointer"}}
+                      <button style={{border:"1.5px solid #C7D2FE",background:"#EEF2FF",color:"#4F46E5",borderRadius:8,padding:"6px 14px",fontSize:12,fontWeight:600,cursor:"pointer"}}
                         onClick={()=>{fileRefs[key].current.value="";fileRefs[key].current.click();}}>
                         + {hasFiles?"추가":"첨부"}
                       </button>
@@ -1024,7 +1024,7 @@ function AttachModal({row, attachments, onClose, onSave}){
 
           <div style={{display:"flex",gap:10,justifyContent:"flex-end",paddingTop:8,borderTop:"1px solid #F2F4F6"}}>
             <button style={{border:"1px solid #E5E8EB",background:"#fff",color:"#8B95A1",borderRadius:10,padding:"10px 22px",fontSize:14,fontWeight:600,cursor:"pointer"}} onClick={onClose}>취소</button>
-            <button style={{border:"none",background:"#0D9488",color:"#fff",borderRadius:10,padding:"10px 28px",fontSize:14,fontWeight:700,cursor:"pointer"}} onClick={()=>onSave(att)}>저장</button>
+            <button style={{border:"none",background:"#4F46E5",color:"#fff",borderRadius:10,padding:"10px 28px",fontSize:14,fontWeight:700,cursor:"pointer"}} onClick={()=>onSave(att)}>저장</button>
           </div>
         </div>
       </div>
@@ -1039,7 +1039,7 @@ function ToastContainer({toasts}){
       {toasts.map(t=>(
         <div key={t.id} style={{
           display:"flex",alignItems:"center",gap:10,
-          background:t.type==="error"?"rgba(239,68,68,0.92)":"rgba(13,148,136,0.92)",
+          background:t.type==="error"?"rgba(239,68,68,0.92)":"rgba(79,70,229,0.92)",
           backdropFilter:"blur(16px) saturate(160%)",
           WebkitBackdropFilter:"blur(16px) saturate(160%)",
           color:"#fff",borderRadius:12,padding:"12px 18px",
@@ -1060,7 +1060,7 @@ function ToastContainer({toasts}){
 /* ══════════════ 통계 탭 ══════════════ */
 function StatsTab({orders,view}){
 
-  const palette=["#0D9488","#14B8A6","#7C3AED","#6366F1","#F59E0B","#EF4444","#10B981","#3B82F6","#EC4899","#8B5CF6"];
+  const palette=["#4F46E5","#6366F1","#7C3AED","#6366F1","#F59E0B","#EF4444","#10B981","#6366F1","#EC4899","#8B5CF6"];
 
   const byCustomer=useMemo(()=>{
     const m={};
@@ -1222,7 +1222,7 @@ function SalesTab({orders,view,setView}){
         data:{
           labels:tableData.map(r=>r.key),
           datasets:[
-            {label:"매출금액",data:tableData.map(r=>r.rev),backgroundColor:"rgba(13,148,136,0.75)",borderColor:"#0D9488",borderWidth:1.5,borderRadius:6,borderSkipped:false},
+            {label:"매출금액",data:tableData.map(r=>r.rev),backgroundColor:"rgba(79,70,229,0.75)",borderColor:"#4F46E5",borderWidth:1.5,borderRadius:6,borderSkipped:false},
             {label:"GP",data:tableData.map(r=>r.gp),backgroundColor:"rgba(255,140,0,0.60)",borderColor:"#FF8C00",borderWidth:1.5,borderRadius:6,borderSkipped:false},
           ],
         },
@@ -1235,7 +1235,7 @@ function SalesTab({orders,view,setView}){
               anchor:"end",align:"top",offset:2,
               formatter:(v)=>v>0?fmtAxis(v):"",
               font:{size:10,weight:"600",family:"Inter, sans-serif"},
-              color:(ctx)=>ctx.datasetIndex===0?"#0D9488":"#FF8C00",
+              color:(ctx)=>ctx.datasetIndex===0?"#4F46E5":"#FF8C00",
               display:(ctx)=>ctx.dataset.data[ctx.dataIndex]>0,
             },
           },
@@ -1263,12 +1263,12 @@ function SalesTab({orders,view,setView}){
   };
   const lobs=["전체","Mac","iPad","ACC","DISP"];
   const viewBtns=[{k:"month",l:"월별"},{k:"week",l:"주별"},{k:"lob",l:"LOB별"}];
-  const S={card:{background:"#fff",borderRadius:16,padding:"16px 18px",boxShadow:"0 2px 8px rgba(13,148,136,0.06)",border:"1.5px solid #E5E8EB"},
+  const S={card:{background:"#fff",borderRadius:16,padding:"16px 18px",boxShadow:"0 2px 8px rgba(79,70,229,0.06)",border:"1.5px solid #E5E8EB"},
     th:{padding:"10px 12px",fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.9)",textAlign:"left",whiteSpace:"nowrap"},
     td:{padding:"10px 12px",fontSize:12,color:"#191F28",borderBottom:"1px solid #F5F7FA"},};
 
   const chipBtn=(active,onClick,label)=>(
-    <button onClick={onClick} style={{border:`1.5px solid ${active?"#0D9488":"#E5E8EB"}`,background:active?"#0D9488":"#fff",color:active?"#fff":"#8B95A1",borderRadius:20,padding:"5px 12px",fontSize:12,fontWeight:active?700:400,cursor:"pointer"}}>{label}</button>
+    <button onClick={onClick} style={{border:`1.5px solid ${active?"#4F46E5":"#E5E8EB"}`,background:active?"#4F46E5":"#fff",color:active?"#fff":"#8B95A1",borderRadius:20,padding:"5px 12px",fontSize:12,fontWeight:active?700:400,cursor:"pointer"}}>{label}</button>
   );
 
   return(
@@ -1278,7 +1278,7 @@ function SalesTab({orders,view,setView}){
         <div style={{display:"flex",background:"#fff",borderRadius:10,border:"1.5px solid #E5E8EB",overflow:"hidden"}}>
           {viewBtns.map(({k,l})=>(
             <button key={k} onClick={()=>setView(k)}
-              style={{border:"none",background:view===k?"#0D9488":"transparent",color:view===k?"#fff":"#8B95A1",padding:"7px 16px",fontSize:12,fontWeight:view===k?700:400,cursor:"pointer"}}>
+              style={{border:"none",background:view===k?"#4F46E5":"transparent",color:view===k?"#fff":"#8B95A1",padding:"7px 16px",fontSize:12,fontWeight:view===k?700:400,cursor:"pointer"}}>
               {l}
             </button>
           ))}
@@ -1308,8 +1308,8 @@ function SalesTab({orders,view,setView}){
       {/* 요약 카드 */}
       <div className="kpi-row">
         {[
-          {label:"견적 건수",val:totals.cnt.toLocaleString()+"건",color:"#0D9488",icon:"📋"},
-          {label:"총 대수",val:totals.qty.toLocaleString()+"대",color:"#14B8A6",icon:"📦"},
+          {label:"견적 건수",val:totals.cnt.toLocaleString()+"건",color:"#4F46E5",icon:"📋"},
+          {label:"총 대수",val:totals.qty.toLocaleString()+"대",color:"#6366F1",icon:"📦"},
           {label:"매출금액(공급)",val:W(totals.rev),color:"#00B252",icon:"💰"},
           {label:"매출총이익(GP)",val:W(totals.gp),color:totals.gp>=0?"#FF8C00":"#F04452",icon:"📈"},
         ].map(c=>(
@@ -1335,7 +1335,7 @@ function SalesTab({orders,view,setView}){
       </div>
 
       {/* 상세 테이블 */}
-      <div style={{background:"#fff",borderRadius:16,border:"1.5px solid #E5E8EB",overflow:"hidden",boxShadow:"0 2px 8px rgba(13,148,136,0.05)"}}>
+      <div style={{background:"#fff",borderRadius:16,border:"1.5px solid #E5E8EB",overflow:"hidden",boxShadow:"0 2px 8px rgba(79,70,229,0.05)"}}>
         <div style={{overflowX:"auto"}}>
           <table style={{width:"100%",borderCollapse:"collapse",minWidth:600}}>
             <thead style={{background:"#111218"}}>
@@ -1358,9 +1358,9 @@ function SalesTab({orders,view,setView}){
                 return(
                   <tr key={r.key} onClick={clickable?()=>setWeekModal(r.key):undefined}
                     style={{background:i%2===0?"#fff":"#F5FFFE",cursor:clickable?"pointer":"default",transition:"background 0.1s"}}
-                    onMouseEnter={e=>{if(clickable)e.currentTarget.style.background="#F0FDFA";}}
+                    onMouseEnter={e=>{if(clickable)e.currentTarget.style.background="#EEF2FF";}}
                     onMouseLeave={e=>{if(clickable)e.currentTarget.style.background=i%2===0?"#fff":"#F5FFFE";}}>
-                    <td style={{...S.td,fontWeight:700,color:"#0D9488"}}>{r.key}{clickable&&<span style={{fontSize:10,color:"#8B95A1",marginLeft:6}}>↗</span>}</td>
+                    <td style={{...S.td,fontWeight:700,color:"#4F46E5"}}>{r.key}{clickable&&<span style={{fontSize:10,color:"#8B95A1",marginLeft:6}}>↗</span>}</td>
                     <td style={{...S.td,textAlign:"right"}}>{r.cnt}</td>
                     <td style={{...S.td,textAlign:"right",fontWeight:600}}>{r.qty.toLocaleString()}</td>
                     <td style={{...S.td,textAlign:"right",fontWeight:700,color:"#00B252"}}>{r.rev>0?W(r.rev):"-"}</td>
@@ -1371,10 +1371,10 @@ function SalesTab({orders,view,setView}){
                 );
               })}
               {tableData.length>1&&(
-                <tr style={{background:"#F0FDFA",fontWeight:700}}>
-                  <td style={{...S.td,color:"#0D9488",fontWeight:800}}>합계</td>
-                  <td style={{...S.td,textAlign:"right",color:"#0D9488"}}>{totals.cnt}</td>
-                  <td style={{...S.td,textAlign:"right",color:"#0D9488"}}>{totals.qty.toLocaleString()}</td>
+                <tr style={{background:"#EEF2FF",fontWeight:700}}>
+                  <td style={{...S.td,color:"#4F46E5",fontWeight:800}}>합계</td>
+                  <td style={{...S.td,textAlign:"right",color:"#4F46E5"}}>{totals.cnt}</td>
+                  <td style={{...S.td,textAlign:"right",color:"#4F46E5"}}>{totals.qty.toLocaleString()}</td>
                   <td style={{...S.td,textAlign:"right",color:"#00B252"}}>{W(totals.rev)}</td>
                   <td style={{...S.td,textAlign:"right",color:"#8B95A1"}}>{W(totals.rev-totals.gp)}</td>
                   <td style={{...S.td,textAlign:"right",color:"#FF8C00"}}>{W(totals.gp)}</td>
@@ -1410,14 +1410,14 @@ function SalesTab({orders,view,setView}){
           sec:{padding:"14px 20px",borderBottom:"1px solid #F2F4F6"},
           secT:{fontSize:11,fontWeight:700,color:"#8B95A1",marginBottom:10,letterSpacing:0.5,textTransform:"uppercase"},
           krow:{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:4},
-          kcard:{background:"#F0FDFA",borderRadius:10,padding:"10px 8px",textAlign:"center"},
+          kcard:{background:"#EEF2FF",borderRadius:10,padding:"10px 8px",textAlign:"center"},
           tag:{fontSize:10,color:"#8B95A1",marginBottom:3},
-          val:{fontSize:15,fontWeight:800,color:"#0D9488"},
+          val:{fontSize:15,fontWeight:800,color:"#4F46E5"},
           bar:{display:"flex",alignItems:"center",gap:8,marginBottom:6},
           barLabel:{fontSize:12,color:"#191F28",fontWeight:600,width:40},
           barTrack:{flex:1,height:6,background:"#F2F4F6",borderRadius:3,overflow:"hidden"},
-          barFill:{height:"100%",background:"linear-gradient(90deg,#0D9488,#14B8A6)",borderRadius:3},
-          pill:{fontSize:11,padding:"3px 9px",borderRadius:20,background:"#F0FDFA",color:"#0D9488",fontWeight:700},
+          barFill:{height:"100%",background:"linear-gradient(90deg,#4F46E5,#6366F1)",borderRadius:3},
+          pill:{fontSize:11,padding:"3px 9px",borderRadius:20,background:"#EEF2FF",color:"#4F46E5",fontWeight:700},
         };
         const maxQty=Math.max(...lobData.map(l=>l.qty),1);
         return(
@@ -1434,7 +1434,7 @@ function SalesTab({orders,view,setView}){
               {/* KPI 요약 */}
               <div style={{...MS.sec,borderBottom:"1px solid #F2F4F6"}}>
                 <div style={MS.krow}>
-                  {[["견적 건수",wTot.cnt+"건","#0D9488"],["총 대수",wTot.qty+"대","#14B8A6"],["매출금액",W(wTot.rev),"#00B252"],["GP",W(wTot.gp),wTot.gp>=0?"#FF8C00":"#F04452"]].map(([t,v,c])=>(
+                  {[["견적 건수",wTot.cnt+"건","#4F46E5"],["총 대수",wTot.qty+"대","#6366F1"],["매출금액",W(wTot.rev),"#00B252"],["GP",W(wTot.gp),wTot.gp>=0?"#FF8C00":"#F04452"]].map(([t,v,c])=>(
                     <div key={t} style={MS.kcard}>
                       <div style={MS.tag}>{t}</div>
                       <div style={{...MS.val,color:c,fontSize:13}}>{v}</div>
@@ -1454,7 +1454,7 @@ function SalesTab({orders,view,setView}){
                     <div key={l.lob} style={{marginBottom:10}}>
                       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
                         <div style={{display:"flex",gap:6,alignItems:"center"}}>
-                          <span style={{...MS.pill,background:"#F0FDFA",color:"#0D9488",fontSize:10}}>{l.lob}</span>
+                          <span style={{...MS.pill,background:"#EEF2FF",color:"#4F46E5",fontSize:10}}>{l.lob}</span>
                           <span style={{fontSize:11,color:"#8B95A1"}}>{l.cnt}건 · {l.qty}대</span>
                         </div>
                         <div style={{display:"flex",gap:8}}>
@@ -1473,7 +1473,7 @@ function SalesTab({orders,view,setView}){
                   <div style={MS.secT}>주요 매출처</div>
                   {topCust.map(([cust,d],i)=>(
                     <div key={cust} style={{display:"flex",alignItems:"center",gap:8,marginBottom:7}}>
-                      <span style={{fontSize:12,fontWeight:800,color:"#99F6E4",width:16}}>{i+1}</span>
+                      <span style={{fontSize:12,fontWeight:800,color:"#C7D2FE",width:16}}>{i+1}</span>
                       <span style={{fontSize:12,fontWeight:600,color:"#191F28",flex:1}}>{cust}</span>
                       <span style={{fontSize:11,color:"#8B95A1"}}>{d.cnt}건 · {d.qty}대</span>
                       <span style={{fontSize:11,fontWeight:700,color:"#00B252",minWidth:50,textAlign:"right"}}>{d.rev>0?W(d.rev):"-"}</span>
@@ -1487,7 +1487,7 @@ function SalesTab({orders,view,setView}){
                   <div style={MS.secT}>수량 상위 품목</div>
                   {topMpn.map(([mpn,d],i)=>(
                     <div key={mpn} style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
-                      <span style={{fontSize:12,fontWeight:800,color:"#99F6E4",width:16}}>{i+1}</span>
+                      <span style={{fontSize:12,fontWeight:800,color:"#C7D2FE",width:16}}>{i+1}</span>
                       <div style={{flex:1,minWidth:0}}>
                         <div style={{fontSize:12,fontWeight:600,color:"#191F28",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{mpn}</div>
                         <div style={{fontSize:10,color:"#8B95A1",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{d.name}</div>
@@ -1517,17 +1517,17 @@ function InvoiceModal({row, onClose, onSave, onClear}){
         <div style={{marginBottom:12}}>
           <div style={{fontSize:11,fontWeight:700,color:"#8B95A1",marginBottom:6}}>발행일</div>
           <input type="date" value={iDate} onChange={e=>{setIDate(e.target.value);e.target.blur();}}
-            style={{width:"100%",border:"1.5px solid #99F6E4",borderRadius:10,padding:"9px 12px",fontSize:13,outline:"none",boxSizing:"border-box"}}/>
+            style={{width:"100%",border:"1.5px solid #C7D2FE",borderRadius:10,padding:"9px 12px",fontSize:13,outline:"none",boxSizing:"border-box"}}/>
         </div>
         <div style={{marginBottom:16}}>
           <div style={{fontSize:11,fontWeight:700,color:"#8B95A1",marginBottom:6}}>메모 <span style={{fontWeight:400,color:"#B0B8C1"}}>(선택)</span></div>
           <input value={iMemo} onChange={e=>setIMemo(e.target.value)}
             placeholder="월말 합발행, 별도 메모 등"
             onKeyDown={e=>{if(e.key==="Enter") onSave(iDate,iMemo.trim());}}
-            style={{width:"100%",border:"1.5px solid #99F6E4",borderRadius:10,padding:"9px 12px",fontSize:13,outline:"none",boxSizing:"border-box"}}/>
+            style={{width:"100%",border:"1.5px solid #C7D2FE",borderRadius:10,padding:"9px 12px",fontSize:13,outline:"none",boxSizing:"border-box"}}/>
         </div>
         <div style={{display:"flex",gap:8}}>
-          <button style={{flex:2,background:"#0D9488",color:"#fff",border:"none",borderRadius:10,padding:"10px",fontSize:13,fontWeight:700,cursor:"pointer"}}
+          <button style={{flex:2,background:"#4F46E5",color:"#fff",border:"none",borderRadius:10,padding:"10px",fontSize:13,fontWeight:700,cursor:"pointer"}}
             onClick={()=>onSave(iDate,iMemo.trim())}>저장</button>
           <button style={{flex:1,background:"#F2F4F6",color:"#8B95A1",border:"none",borderRadius:10,padding:"10px",fontSize:13,cursor:"pointer"}}
             onClick={onClear}>초기화</button>
@@ -1548,8 +1548,8 @@ function BulkModal({cnt, onClose, onApply}){
     box:{background:"rgba(255,255,255,0.88)",backdropFilter:"blur(24px) saturate(160%)",WebkitBackdropFilter:"blur(24px) saturate(160%)",borderRadius:20,width:"min(420px,96vw)",boxShadow:"0 16px 56px rgba(0,0,0,0.18),inset 0 1px 0 rgba(255,255,255,0.9)",border:"1px solid rgba(255,255,255,0.6)",overflow:"hidden"},
     hdr:{background:"#111218",padding:"18px 22px",display:"flex",justifyContent:"space-between",alignItems:"center"},
     sec:{padding:"14px 20px",borderBottom:"1px solid #F2F4F6"},
-    secBtn:(active)=>({width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center",background:active?"#F0FDFA":"#F0FDFA",border:active?"1.5px solid #0D9488":"1.5px solid #E5E8EB",borderRadius:10,padding:"11px 14px",fontSize:13,fontWeight:700,cursor:"pointer",color:active?"#0D9488":"#191F28",marginBottom:active?8:0}),
-    chip:(on)=>({padding:"6px 14px",borderRadius:20,border:on?"1.5px solid #0D9488":"1.5px solid #E5E8EB",background:on?"#0D9488":"#fff",color:on?"#fff":"#8B95A1",fontSize:12,fontWeight:on?700:400,cursor:"pointer",whiteSpace:"nowrap"}),
+    secBtn:(active)=>({width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center",background:active?"#EEF2FF":"#EEF2FF",border:active?"1.5px solid #4F46E5":"1.5px solid #E5E8EB",borderRadius:10,padding:"11px 14px",fontSize:13,fontWeight:700,cursor:"pointer",color:active?"#4F46E5":"#191F28",marginBottom:active?8:0}),
+    chip:(on)=>({padding:"6px 14px",borderRadius:20,border:on?"1.5px solid #4F46E5":"1.5px solid #E5E8EB",background:on?"#4F46E5":"#fff",color:on?"#fff":"#8B95A1",fontSize:12,fontWeight:on?700:400,cursor:"pointer",whiteSpace:"nowrap"}),
     attBtn:(on)=>({padding:"6px 14px",borderRadius:20,border:on?"1.5px solid #00B252":"1.5px solid #E5E8EB",background:on?"#E6F9EE":"#fff",color:on?"#00B252":"#8B95A1",fontSize:12,fontWeight:on?700:400,cursor:"pointer"}),
   };
   function handleApply(){
@@ -1576,7 +1576,7 @@ function BulkModal({cnt, onClose, onApply}){
         <div style={BS.sec}>
           <button style={BS.secBtn(section==="status")} onClick={()=>setSection(section==="status"?null:"status")}>
             <span>📋 발주 확인 변경</span>
-            <span style={{fontSize:12,fontWeight:400,color:section==="status"&&bStatus?"#0D9488":"#8B95A1"}}>{section==="status"&&bStatus?bStatus:"선택 안 함"} {section==="status"?"▲":"▼"}</span>
+            <span style={{fontSize:12,fontWeight:400,color:section==="status"&&bStatus?"#4F46E5":"#8B95A1"}}>{section==="status"&&bStatus?bStatus:"선택 안 함"} {section==="status"?"▲":"▼"}</span>
           </button>
           {section==="status"&&(
             <div style={{display:"flex",gap:6,flexWrap:"wrap",paddingBottom:6}}>
@@ -1613,7 +1613,7 @@ function BulkModal({cnt, onClose, onApply}){
         {/* 적용 버튼 */}
         <div style={{padding:"14px 20px",display:"flex",gap:8,justifyContent:"flex-end"}}>
           <button onClick={onClose} style={{background:"#F2F4F6",color:"#8B95A1",border:"none",borderRadius:10,padding:"10px 18px",fontSize:13,cursor:"pointer",fontWeight:600}}>취소</button>
-          <button onClick={handleApply} style={{background:"#0D9488",color:"#fff",border:"none",borderRadius:10,padding:"10px 22px",fontSize:13,fontWeight:700,cursor:"pointer"}}>{cnt}건 적용</button>
+          <button onClick={handleApply} style={{background:"#4F46E5",color:"#fff",border:"none",borderRadius:10,padding:"10px 22px",fontSize:13,fontWeight:700,cursor:"pointer"}}>{cnt}건 적용</button>
         </div>
       </div>
     </div>
@@ -1921,10 +1921,10 @@ function App(){
     page:{minHeight:"100vh"},
     header:{},
     logo:{display:"flex",alignItems:"center",gap:10,flexShrink:0},
-    logoBox:{width:32,height:32,background:"linear-gradient(135deg,#0D9488,#14B8A6)",borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,boxShadow:"0 2px 10px rgba(13,148,136,0.45)"},
+    logoBox:{width:32,height:32,background:"linear-gradient(135deg,#4F46E5,#6366F1)",borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,boxShadow:"0 2px 10px rgba(79,70,229,0.45)"},
     logoText:{fontSize:14,fontWeight:700,color:"#fff",letterSpacing:-0.3,whiteSpace:"nowrap"},
     headerBtns:{display:"flex",gap:5,alignItems:"center"},
-    actionBtn:(primary)=>({border:primary?"none":"1px solid rgba(255,255,255,0.1)",background:primary?"#0D9488":"rgba(255,255,255,0.06)",color:"#fff",borderRadius:8,padding:"6px 13px",fontSize:12,fontWeight:primary?600:400,cursor:"pointer",display:"flex",alignItems:"center",gap:5,whiteSpace:"nowrap",transition:"all 0.15s"}),
+    actionBtn:(primary)=>({border:primary?"none":"1px solid rgba(255,255,255,0.1)",background:primary?"#4F46E5":"rgba(255,255,255,0.06)",color:"#fff",borderRadius:8,padding:"6px 13px",fontSize:12,fontWeight:primary?600:400,cursor:"pointer",display:"flex",alignItems:"center",gap:5,whiteSpace:"nowrap",transition:"all 0.15s"}),
     main:{},
     kpiRow:{},
     kpiCard:{background:"rgba(255,255,255,0.70)",backdropFilter:"blur(20px) saturate(160%)",WebkitBackdropFilter:"blur(20px) saturate(160%)",borderRadius:16,padding:"20px 22px",boxShadow:"0 4px 24px rgba(0,0,0,0.06),inset 0 1px 0 rgba(255,255,255,0.85)",border:"1px solid rgba(255,255,255,0.55)"},
@@ -1974,8 +1974,8 @@ function App(){
             {cf.options.map(opt=>(
               <div key={opt} onClick={()=>cf.set(opt)}
                 style={{padding:"8px 14px",fontSize:12,cursor:"pointer",fontWeight:cf.value===opt?700:400,
-                  color:cf.value===opt?"#0D9488":"#0D0F1C",
-                  background:cf.value===opt?"#F0FDFA":"#fff",
+                  color:cf.value===opt?"#4F46E5":"#0D0F1C",
+                  background:cf.value===opt?"#EEF2FF":"#fff",
                   borderBottom:"1px solid #F2F4F6"}}>
                 {opt}
               </div>
@@ -2122,9 +2122,9 @@ function App(){
                           border:"none",background:"transparent",cursor:"pointer",
                           textAlign:"left",padding:"7px 10px",borderRadius:8,
                           fontSize:12,fontWeight:activeSubLabel===s.label?600:400,
-                          color:activeSubLabel===s.label?"#5EEAD4":"rgba(255,255,255,0.75)",
+                          color:activeSubLabel===s.label?"#A5B4FC":"rgba(255,255,255,0.75)",
                           transition:"all 0.15s",
-                          backgroundColor:activeSubLabel===s.label?"rgba(13,148,136,0.12)":"transparent",
+                          backgroundColor:activeSubLabel===s.label?"rgba(79,70,229,0.12)":"transparent",
                         }}
                         onMouseEnter={e=>{ if(activeSubLabel!==s.label) e.currentTarget.style.color="#fff"; }}
                         onMouseLeave={e=>{ if(activeSubLabel!==s.label) e.currentTarget.style.color="rgba(255,255,255,0.75)"; }}
@@ -2144,7 +2144,7 @@ function App(){
         {tab==="orders"&&(
         <div className="kpi-row">
           {[
-            {label:"전체 발주",val:kpi.total,unit:"건",color:"#0D9488",bar:"#0D9488"},
+            {label:"전체 발주",val:kpi.total,unit:"건",color:"#4F46E5",bar:"#4F46E5"},
             {label:"납품 완료",val:kpi.done,unit:"건",color:"#059669",bar:"#059669"},
             {label:"납품 대기",val:kpi.pending,unit:"건",color:"#B45309",bar:"#F59E0B"},
             {label:"발주 취소",val:kpi.cancelled,unit:"건",color:"#9CA3AF",bar:"#D1D5DB"},
@@ -2168,7 +2168,7 @@ function App(){
             <div style={S.filterBar}>
               <input style={{...S.searchInp,flex:1,maxWidth:360}} value={search} onChange={e=>{setSearch(e.target.value);setPage(1);}} placeholder="🔍  품목명 / MPN / 거래처 검색"/>
               <select value={filterMonth} onChange={e=>{setFilterMonth(e.target.value);setPage(1);}}
-                style={{...S.searchInp,color:filterMonth?"#0D9488":"#8B95A1",fontWeight:filterMonth?600:400,cursor:"pointer",width:"auto",height:34,boxSizing:"border-box",appearance:"none",WebkitAppearance:"none",paddingRight:24,backgroundImage:"url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%239CA3AF' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E\")",backgroundRepeat:"no-repeat",backgroundPosition:"right 8px center"}}>
+                style={{...S.searchInp,color:filterMonth?"#4F46E5":"#8B95A1",fontWeight:filterMonth?600:400,cursor:"pointer",width:"auto",height:34,boxSizing:"border-box",appearance:"none",WebkitAppearance:"none",paddingRight:24,backgroundImage:"url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%239CA3AF' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E\")",backgroundRepeat:"no-repeat",backgroundPosition:"right 8px center"}}>
                 <option value="">전체 월</option>
                 {availableMonths.map(m=>{
                   const mo=m.slice(5);
@@ -2178,7 +2178,7 @@ function App(){
               <span style={{marginLeft:"auto",fontSize:12,color:"#8B95A1",fontWeight:600}}>{filtered.length}건</span>
               {selectedIds.size>0&&(
                 <>
-                  <button style={{border:"1px solid #5EEAD4",background:"#F0FDFA",color:"#0D9488",borderRadius:8,padding:"6px 14px",fontSize:12,cursor:"pointer",fontWeight:600,whiteSpace:"nowrap"}}
+                  <button style={{border:"1px solid #A5B4FC",background:"#EEF2FF",color:"#4F46E5",borderRadius:8,padding:"6px 14px",fontSize:12,cursor:"pointer",fontWeight:600,whiteSpace:"nowrap"}}
                     onClick={()=>setBulkModal(true)}>⚡ 일괄 처리 ({selectedIds.size})</button>
                   <button style={{border:"1.5px solid #F04452",background:"#FFE9EC",color:"#F04452",borderRadius:8,padding:"6px 14px",fontSize:12,cursor:"pointer",fontWeight:700,whiteSpace:"nowrap"}}
                     onClick={deleteSelected}>🗑️ 선택 삭제 ({selectedIds.size})</button>
@@ -2230,7 +2230,7 @@ function App(){
                       const rowAtt=attachments[row.id]||{};
                       const isComplete=row.orderStatus?.includes("납품 가능")&&del.type==="done"&&!!rowAtt.quote&&!!rowAtt.serial&&!!rowAtt.inspect;
                       return(
-                        <tr key={row.id} style={{background:selectedIds.has(row.id)?"rgba(13,148,136,0.08)":isComplete?"rgba(124,58,237,0.07)":"transparent",borderLeft:selectedIds.has(row.id)?"3px solid #0D9488":isComplete?"3px solid #7C3AED":"3px solid transparent",transition:"background 0.15s"}}>
+                        <tr key={row.id} style={{background:selectedIds.has(row.id)?"rgba(79,70,229,0.08)":isComplete?"rgba(124,58,237,0.07)":"transparent",borderLeft:selectedIds.has(row.id)?"3px solid #4F46E5":isComplete?"3px solid #7C3AED":"3px solid transparent",transition:"background 0.15s"}}>
                           <td style={{...S.td,textAlign:"center",padding:"8px 6px"}} onClick={e=>e.stopPropagation()}>
                             <input type="checkbox"
                               checked={selectedIds.has(row.id)}
@@ -2241,7 +2241,7 @@ function App(){
                                   return n;
                                 });
                               }}
-                              style={{cursor:"pointer",width:14,height:14,accentColor:"#0D9488"}}/>
+                              style={{cursor:"pointer",width:14,height:14,accentColor:"#4F46E5"}}/>
                           </td>
                           <td style={S.td}>{row.quoteDate}</td>
                           <td style={S.td}><span style={{fontSize:11,color:"#8B95A1"}}>
@@ -2258,8 +2258,8 @@ function App(){
                           <td style={{...S.td,cursor:"pointer"}} onClick={()=>setModal({type:"detail",row})}><span style={{fontSize:11,fontWeight:600,color:"#191F28",maxWidth:110,display:"inline-block",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",textDecoration:"none"}} title={row.customer}>{row.customer.replace("비바리퍼블리카(토스코어)","토스코어")}</span></td>
                           <td style={S.td}><span style={{...S.pill(cs.bg,cs.c)}}>{row.category}</span></td>
                           <td style={{...S.td,cursor:"pointer"}} onClick={()=>setModal({type:"detail",row})}>
-                            <span style={{fontSize:11,fontWeight:700,color:"#0D9488",fontFamily:"monospace",textDecoration:"none"}}>{row.mpn}</span>
-                            {(row.subItems&&row.subItems.length>0)&&<span style={{fontSize:10,background:"#F0FDFA",color:"#0D9488",borderRadius:6,padding:"1px 6px",marginLeft:4,fontWeight:600}}>외 {row.subItems.length}종</span>}
+                            <span style={{fontSize:11,fontWeight:700,color:"#4F46E5",fontFamily:"monospace",textDecoration:"none"}}>{row.mpn}</span>
+                            {(row.subItems&&row.subItems.length>0)&&<span style={{fontSize:10,background:"#EEF2FF",color:"#4F46E5",borderRadius:6,padding:"1px 6px",marginLeft:4,fontWeight:600}}>외 {row.subItems.length}종</span>}
                           </td>
                           <td style={{...S.td,maxWidth:200,cursor:"pointer"}} onClick={()=>setModal({type:"detail",row})}><span style={{fontSize:11,display:"block",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",textDecoration:"none"}} title={row.itemName}>{row.itemName}</span></td>
                           <td style={{...S.td,textAlign:"right",fontWeight:700}}>{((row.qty||0)+(row.subItems||[]).reduce((s,i)=>s+(+i.qty||0),0)).toLocaleString()}</td>
@@ -2278,7 +2278,7 @@ function App(){
                               </div>
                               {del.pct>0&&del.pct<100&&(
                                 <div style={{height:3,background:"#E5E8EB",borderRadius:2,width:70}}>
-                                  <div style={{height:"100%",width:`${del.pct}%`,background:"#0D9488",borderRadius:2}}/>
+                                  <div style={{height:"100%",width:`${del.pct}%`,background:"#4F46E5",borderRadius:2}}/>
                                 </div>
                               )}
                             </div>
@@ -2355,7 +2355,7 @@ function App(){
                   else if(page>=totalPages-3) p=totalPages-6+i;
                   else p=page-3+i;
                   if(p<1||p>totalPages) return null;
-                  return <button key={p} style={{border:`1px solid ${p===page?"#0D9488":"#E8EAF0"}`,background:p===page?"#0D9488":"#fff",color:p===page?"#fff":"#6B7280",borderRadius:8,padding:"5px 10px",fontSize:12,cursor:"pointer",fontWeight:p===page?600:400}} onClick={()=>setPage(p)}>{p}</button>;
+                  return <button key={p} style={{border:`1px solid ${p===page?"#4F46E5":"#E8EAF0"}`,background:p===page?"#4F46E5":"#fff",color:p===page?"#fff":"#6B7280",borderRadius:8,padding:"5px 10px",fontSize:12,cursor:"pointer",fontWeight:p===page?600:400}} onClick={()=>setPage(p)}>{p}</button>;
                 })}
                 <button style={{border:"1px solid #E5E8EB",background:page===totalPages?"#F2F4F6":"#fff",color:page===totalPages?"#8B95A1":"#191F28",borderRadius:8,padding:"5px 12px",fontSize:12,cursor:page===totalPages?"default":"pointer"}} disabled={page===totalPages} onClick={()=>setPage(p=>p+1)}>다음 →</button>
               </div>
