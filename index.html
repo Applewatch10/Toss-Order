@@ -95,9 +95,28 @@
       .kpi-row{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:14px;}
       .hdr-inner{padding:8px 12px;}
       .hdr-right{padding:6px 0;}
-      .app-main{padding:14px 12px;}
+      .app-main{padding:12px;padding-bottom:80px;}
+      .sidebar{display:none;}
+      .mobile-bottom-nav{display:flex!important;}
     }
     @media(max-width:480px){.kpi-row{grid-template-columns:1fr 1fr;gap:8px;}}
+    .mobile-bottom-nav{
+      display:none;position:fixed;bottom:0;left:0;right:0;z-index:200;
+      background:rgba(7,7,12,0.92);
+      backdrop-filter:blur(24px) saturate(180%);
+      -webkit-backdrop-filter:blur(24px) saturate(180%);
+      border-top:1px solid rgba(255,255,255,0.08);
+      padding:8px 0 max(8px,env(safe-area-inset-bottom));
+    }
+    .mob-nav-btn{
+      flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
+      background:none;border:none;cursor:pointer;padding:4px 0;
+      color:rgba(255,255,255,0.4);font-size:10px;font-weight:500;
+      font-family:inherit;transition:color 0.15s;
+    }
+    .mob-nav-btn.active{color:#5EEAD4;}
+    .mob-nav-btn svg{opacity:0.5;}
+    .mob-nav-btn.active svg{opacity:1;}
   </style>
 </head>
 <body>
@@ -2361,6 +2380,21 @@ function App(){
       {bulkModal&&<BulkModal cnt={selectedIds.size} onClose={()=>setBulkModal(false)} onApply={applyBulk}/>}
       {modal?.type==="editInvoice"&&<InvoiceModal row={modal.row} onClose={()=>setModal(null)} onSave={(invoiceDate,invoice)=>{patchOrder(modal.row.id,{invoiceDate,invoice});setModal(null);showToast("계산서 정보가 저장되었습니다.");}} onClear={()=>{patchOrder(modal.row.id,{invoiceDate:"",invoice:""});setModal(null);showToast("계산서 정보가 초기화되었습니다.","error");}}/>}
       <ToastContainer toasts={toasts}/>
+
+      {/* ── 모바일 하단 탭바 ── */}
+      <nav className="mobile-bottom-nav">
+        {[
+          {key:"orders",label:"수발주",icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 12h6M9 16h4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>},
+          {key:"sales",label:"매출",icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3 3v18h18M7 16l4-4 4 4 4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>},
+          {key:"stats",label:"통계",icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 20h16M4 20V10m0 10h4V10H4v10zm8 0V4m-4 16h8V4h-4v16zm4 0h4v-6h-4v6z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>},
+        ].map(item=>(
+          <button key={item.key} className={`mob-nav-btn${tab===item.key?" active":""}`}
+            onClick={()=>{setTab(item.key);setExpandedNav(new Set([item.key]));}}>
+            {item.icon}
+            <span>{item.label}</span>
+          </button>
+        ))}
+      </nav>
 
       {modal?.type==="editStatus"&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.3)",backdropFilter:"blur(12px)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setModal(null)}>
