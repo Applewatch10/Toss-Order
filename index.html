@@ -328,7 +328,7 @@ function parseQuotationExcel(rawRows){
   return {items, quoteDate, customer, mode:"structured"};
 }
 
-const emptyForm=(customers,orderType="수주")=>({quoteDate:"",orderDate:"",orderDateMemo:"",customer:(customers||DEFAULT_CUSTOMERS)[0],category:"Mac",mpn:"",itemName:"",qty:1,orderStatus:"발주 완료 및 대기",invoice:"",invoiceDate:"",notes:"",deliveries:[],orderType});
+const emptyForm=(customers,orderType="견적")=>({quoteDate:"",orderDate:"",orderDateMemo:"",customer:(customers||DEFAULT_CUSTOMERS)[0],category:"Mac",mpn:"",itemName:"",qty:1,orderStatus:"발주 완료 및 대기",invoice:"",invoiceDate:"",notes:"",deliveries:[],orderType});
 
 /* ══════════════ 커스텀 날짜 선택기 ══════════════ */
 function DatePicker({value, onChange, placeholder="날짜 선택", style={}, inputStyle={}}){
@@ -634,7 +634,7 @@ function AddEditModal({initial, onClose, onSave, customers=DEFAULT_CUSTOMERS, co
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.35)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(12px)"}} onClick={onClose}>
       <div style={{background:"rgba(255,255,255,0.88)",backdropFilter:"blur(24px) saturate(160%)",WebkitBackdropFilter:"blur(24px) saturate(160%)",borderRadius:20,width:"min(580px,96vw)",maxHeight:"92vh",overflowY:"auto",boxShadow:"0 16px 56px rgba(0,0,0,0.18),inset 0 1px 0 rgba(255,255,255,0.9)",border:"1px solid rgba(255,255,255,0.6)"}} onClick={e=>e.stopPropagation()}>
         <div style={{background:"#111218",padding:"20px 24px",borderRadius:"20px 20px 0 0",color:"#fff"}}>
-          <div style={{fontSize:16,fontWeight:800}}>{convertMode?"📦 수정 후 발주 전환":initial?.id?"✏️ 수주 수정":"➕ 새 수주 등록"}</div>
+          <div style={{fontSize:16,fontWeight:800}}>{convertMode?"📦 수정 후 발주 전환":initial?.id?`✏️ ${form.orderType||"견적"} 수정`:`➕ 새 ${form.orderType||"견적"} 등록`}</div>
         </div>
         <div style={{padding:"20px 24px"}}>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 14px"}}>
@@ -828,7 +828,7 @@ function DetailModal({row, onClose, attachments={}, onPatch, onToggleAtt, onOpen
 
 /* ══════════════ 엑셀 가져오기 모달 ══════════════ */
 function ImportModal({onClose, onImport, existingOrders, customers=DEFAULT_CUSTOMERS, subTab="발주"}){
-  const isReceiving=subTab==="수주";
+  const isReceiving=subTab==="견적";
   const [step,setStep]=useState(1);
   const [parsed,setParsed]=useState(null);
   const [quoteFile,setQuoteFile]=useState(null);
@@ -886,10 +886,10 @@ function ImportModal({onClose, onImport, existingOrders, customers=DEFAULT_CUSTO
       if(!ok) return;
     }
     if(!isReceiving){
-      const ok=window.confirm("수주탭이 아닌 바로 발주탭으로 등록됩니다.\n진행하시겠습니까?");
+      const ok=window.confirm(`견적탭이 아닌 바로 ${subTab}탭으로 등록됩니다.\n진행하시겠습니까?`);
       if(!ok) return;
     }
-    const finalOrders=newOrders.map(o=>({...o,orderType:isReceiving?"수주":"발주"}));
+    const finalOrders=newOrders.map(o=>({...o,orderType:subTab}));
     onImport(finalOrders, quoteFile);
     onClose();
   }
@@ -1908,7 +1908,7 @@ function App(){
   const [syncing, setSyncing]=useState(false);
   const isPolling=useRef(false);
   const [tab, setTab]=useState("orders");
-  const [subTab, setSubTab]=useState("발주");
+  const [subTab, setSubTab]=useState("견적");
   const [salesView, setSalesView]=useState("month");
   const [salesBasis, setSalesBasis]=useState("quote");
   const [expandedSalesBasis, setExpandedSalesBasis]=useState("quote");
@@ -2110,9 +2110,9 @@ function App(){
       setOrders(o=>o.map(r=>r.id===form.id?{...form}:r));
       showToast("발주가 수정되었습니다.");
     } else {
-      setOrders(o=>[...o,{...form,id:nextId,deliveries:form.deliveries||[],orderType:form.orderType||"수주"}]);
+      setOrders(o=>[...o,{...form,id:nextId,deliveries:form.deliveries||[],orderType:form.orderType||"견적"}]);
       setNextId(n=>n+1);
-      showToast("수주에 등록되었습니다.");
+      showToast(`${form.orderType||"견적"}에 등록되었습니다.`);
     }
     setModal(null);
   }
@@ -2190,8 +2190,16 @@ function App(){
   function patchOrder(id,fields){
     setOrders(o=>o.map(r=>r.id===id?{...r,...fields}:r));
   }
-  function convertToOrder(row){
-    setModal({type:"convertToOrder",row});
+  function convertToSuju(row){
+    if(window.confirm(`'${row.mpn}'\n수주탭으로 이동할까요?`)){
+      patchOrder(row.id,{orderType:"수주"});
+      setSubTab("수주");
+      setModal(null);
+      showToast(`'${row.mpn}' 수주탭으로 이동되었습니다.`);
+    }
+  }
+  function convertToBalju(row){
+    setModal({type:"convertToBalju",row});
   }
 
   /* ── Excel 내보내기 ── */
@@ -2395,6 +2403,7 @@ function App(){
           {key:"orders",label:"수발주 현황",
             icon:<svg className="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 12h6M9 16h4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>,
             sub:[
+              {label:"견적 목록",   action:()=>{setTab("orders");setSubTab("견적");setFilterCompletion("전체");setPage(1);}},
               {label:"수주 목록",   action:()=>{setTab("orders");setSubTab("수주");setFilterCompletion("전체");setPage(1);}},
               {label:"발주 목록",   action:()=>{setTab("orders");setSubTab("발주");setFilterCompletion("전체");setPage(1);}},
               {label:"납품 완료",    action:()=>{setTab("orders");setSubTab("발주");setFilterCompletion("납품+계산서완료");setPage(1);}},
@@ -2544,7 +2553,10 @@ function App(){
         {/* KPI 카드 — 수발주·배정 탭에서만 표시 */}
         {tab==="orders"&&(
         <div className="kpi-row">
-          {(subTab==="수주"?[
+          {(subTab==="견적"?[
+            {label:"전체 견적",val:kpi.total,unit:"건",color:"#4F46E5",bar:"#4F46E5"},
+            {label:"견적 취소",val:kpi.cancelled,unit:"건",color:"#9CA3AF",bar:"#D1D5DB"},
+          ]:subTab==="수주"?[
             {label:"전체 수주",val:kpi.total,unit:"건",color:"#4F46E5",bar:"#4F46E5"},
             {label:"수주 취소",val:kpi.cancelled,unit:"건",color:"#9CA3AF",bar:"#D1D5DB"},
           ]:[
@@ -2568,9 +2580,9 @@ function App(){
         {/* 수발주 현황 탭 */}
         {tab==="orders"&&(
           <>
-            {/* 수주/발주 서브탭 */}
-            <div style={{display:"flex",gap:6,marginBottom:16}}>
-              {["수주","발주"].map(t=>(
+            {/* 견적/수주/발주 서브탭 */}
+            <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap",alignItems:"center"}}>
+              {["견적","수주","발주"].map(t=>(
                 <button key={t} onClick={()=>{setSubTab(t);setPage(1);}} style={{padding:"8px 24px",borderRadius:10,border:"none",fontSize:14,fontWeight:700,cursor:"pointer",transition:"all 0.15s",
                   background:subTab===t?"#4F46E5":"rgba(255,255,255,0.7)",
                   color:subTab===t?"#fff":"#6B7280",
@@ -2581,7 +2593,8 @@ function App(){
                   </span>
                 </button>
               ))}
-              {subTab==="수주"&&<span style={{marginLeft:"auto",alignSelf:"center",fontSize:12,color:"#8B95A1"}}>수주 등록 후 확인되면 발주탭으로 이동하세요</span>}
+              {subTab==="견적"&&<span style={{marginLeft:"auto",alignSelf:"center",fontSize:12,color:"#8B95A1"}}>견적서로 가져온 항목 · 고객사 확인 시 → 수주 이동</span>}
+              {subTab==="수주"&&<span style={{marginLeft:"auto",alignSelf:"center",fontSize:12,color:"#8B95A1"}}>고객사 확인된 수주 · 총판에 발주 시 → 발주 이동</span>}
             </div>
             {/* 필터 바 */}
             <div style={S.filterBar}>
@@ -2756,7 +2769,8 @@ function App(){
                               <button style={S.iconBtn} title="상세" onClick={()=>setModal({type:"detail",row})}>🔍</button>
                               <button style={S.iconBtn} title="수정" onClick={()=>setModal({type:"edit",row})}>✏️</button>
                               <button style={S.iconBtn} title="삭제" onClick={()=>{if(confirm("삭제할까요?")) deleteOrder(row.id);}}>🗑️</button>
-                              {subTab==="수주"&&<button title="발주탭으로 전환" onClick={()=>convertToOrder(row)} style={{...S.iconBtn,background:"#EEF2FF",color:"#4F46E5",border:"1px solid #C7D2FE",fontSize:11,padding:"3px 8px",borderRadius:6,cursor:"pointer",fontWeight:700,whiteSpace:"nowrap"}}>→ 발주</button>}
+                              {subTab==="견적"&&<button title="수주탭으로 전환" onClick={()=>convertToSuju(row)} style={{...S.iconBtn,background:"#EEF2FF",color:"#4F46E5",border:"1px solid #C7D2FE",fontSize:11,padding:"3px 8px",borderRadius:6,cursor:"pointer",fontWeight:700,whiteSpace:"nowrap"}}>→ 수주</button>}
+                              {subTab==="수주"&&<button title="발주탭으로 전환" onClick={()=>convertToBalju(row)} style={{...S.iconBtn,background:"#EEF2FF",color:"#4F46E5",border:"1px solid #C7D2FE",fontSize:11,padding:"3px 8px",borderRadius:6,cursor:"pointer",fontWeight:700,whiteSpace:"nowrap"}}>→ 발주</button>}
                             </div>
                           </td>
                         </tr>
@@ -2795,7 +2809,7 @@ function App(){
       {/* ── 모달들 ── */}
       {modal?.type==="add"&&<AddEditModal onClose={()=>setModal(null)} onSave={saveOrder} customers={customers}/>}
       {modal?.type==="edit"&&<AddEditModal initial={modal.row} onClose={()=>setModal(null)} onSave={saveOrder} customers={customers}/>}
-      {modal?.type==="convertToOrder"&&<ConvertToOrderModal row={modal.row} onClose={()=>setModal(null)} onConvert={fields=>{patchOrder(modal.row.id,{...fields,orderType:"발주"});setSubTab("발주");setModal(null);showToast(`'${modal.row.mpn}' 발주탭으로 이동되었습니다.`);}}/>}
+      {modal?.type==="convertToBalju"&&<ConvertToOrderModal row={modal.row} onClose={()=>setModal(null)} onConvert={fields=>{patchOrder(modal.row.id,{...fields,orderType:"발주"});setSubTab("발주");setModal(null);showToast(`'${modal.row.mpn}' 발주탭으로 이동되었습니다.`);}}/>}
       {modal?.type==="delivery"&&<DeliveryModal row={modal.row} onClose={()=>setModal(null)} onSave={dels=>saveDeliveries(modal.row.id,dels)}/>}
       {modal?.type==="detail"&&<DetailModal row={modal.row} onClose={()=>setModal(null)} attachments={attachments} onPatch={(id,patch)=>{patchOrder(id,patch);showToast("저장되었습니다.");}} onToggleAtt={toggleAtt} onOpenDelivery={(row)=>setModal({type:"delivery",row})} onOpenInvoice={(row)=>setModal({type:"editInvoice",row})}/>}
       {modal?.type==="import"&&<ImportModal onClose={()=>setModal(null)} onImport={importOrders} existingOrders={orders} customers={customers} subTab={subTab}/>}
