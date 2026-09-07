@@ -30,7 +30,7 @@
     ::-webkit-scrollbar-thumb:hover{background:rgba(0,0,0,0.25);}
     input,select,textarea,button{font-family:inherit;}
     tbody tr:hover td{background:rgba(79,70,229,0.05)!important;}
-    @keyframes toastIn{from{opacity:0;transform:translateY(12px) scale(0.96);}to{opacity:1;transform:translateY(0) scale(1);}}
+    @keyframes toastIn{from{opacity:0;transform:translateY(-12px) scale(0.96);}to{opacity:1;transform:translateY(0) scale(1);}}
 
     /* ── 글래스 공통 ── */
     .glass{
@@ -124,94 +124,54 @@
 <script type="text/babel">
 const { useState, useEffect, useRef, useMemo, useCallback } = React;
 
-/* ── 초기 데이터 ── */
+/* ── 초기 데이터 (샘플 더미 데이터) ── */
 const INITIAL_DATA = [
-  {id:1,quoteDate:"2026-01-05",orderDate:"?",customer:"비바리퍼블리카(토스코어)",category:"Mac",mpn:"Z1FD0002L",itemName:"MBP 14 SL/M4 Max 16C CPU/40C GPU/64GB/1TB-KOR",qty:30,orderStatus:"14대 발주 취소",invoice:"14인치,13,15인치 25일 발행",notes:"16대 우선 납품 및 Macbook Air 13,15인치 15대씩 납품(2/25일)",deliveries:[{id:1,qty:16,date:"2026-02-25",status:"완료",note:""},{id:2,qty:14,date:"",status:"취소",note:"발주 취소"}]},
-  {id:2,quoteDate:"2026-02-02",orderDate:"2026-02-06",customer:"비바리퍼블리카(토스코어)",category:"Mac",mpn:"Z1CE000BD",itemName:"MAC STUDIO/32C CPU/80C GPU/96G/2TB-KOR",qty:8,orderStatus:"납품 가능",invoice:"3/12일 발행",notes:"",deliveries:[{id:1,qty:8,date:"2026-03-12",status:"완료",note:""}]},
-  {id:3,quoteDate:"2026-02-03",orderDate:"2026-02-04",customer:"파이인스티튜트오브디자인",category:"Mac",mpn:"Z1FF0003B",itemName:"MBP 14 SB/M4 Pro 14C CPU/20C GPU/48GB/1TB-KOR",qty:3,orderStatus:"1대 완료 / 2대 배정완",invoice:"1대 완 / 2대 3.3일 발행",notes:"",deliveries:[{id:1,qty:1,date:"2026-02-06",status:"완료",note:""},{id:2,qty:2,date:"2026-03-03",status:"완료",note:""}]},
-  {id:4,quoteDate:"2026-02-09",orderDate:"2026-02-10",customer:"토스증권",category:"DISP",mpn:"MYJK3KH/A",itemName:"STUDIO DISPLAY NANO/TILT/1M-KOR",qty:3,orderStatus:"발주 취소",invoice:"",notes:"",deliveries:[]},
-  {id:5,quoteDate:"2026-02-10",orderDate:"2026-02-10",customer:"파이인스티튜트오브디자인",category:"Mac",mpn:"Z1FF0003B",itemName:"MBP 14 SB/M4 Pro 14C CPU/20C GPU/48GB/1TB-KOR",qty:2,orderStatus:"발주 취소",invoice:"",notes:"",deliveries:[]},
-  {id:6,quoteDate:"2026-02-10",orderDate:"2026-02-10",customer:"비바리퍼블리카(토스코어)",category:"ACC",mpn:"MWU53FE/A 외",itemName:"Earpods (3.5mm Headphone Plug)",qty:170,orderStatus:"",invoice:"25일 발행",notes:"MWU53FE/A - 8개 페이스북 코리아 제품 사용, MXK73KH/A - 7개 재화창고 제품 사용",deliveries:[{id:1,qty:170,date:"2026-02-25",status:"완료",note:""}]},
-  {id:7,quoteDate:"2026-02-11",orderDate:"백록",customer:"토스증권",category:"Mac",mpn:"Z1FD0002L",itemName:"MBP 14 SL/M4 Max 16C CPU/40C GPU/64GB/1TB-KOR",qty:20,orderStatus:"발주 취소",invoice:"",notes:"",deliveries:[]},
-  {id:8,quoteDate:"2026-02-12",orderDate:"백록",customer:"토스인컴",category:"Mac",mpn:"MU9D3KH/A",itemName:"MAC MINI/M4 10C CPU/10C GPU/16GB/256GB-KOR",qty:1,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[{id:1,qty:1,date:"2026-04-14",status:"대기",note:""}]},
-  {id:9,quoteDate:"2026-02-20",orderDate:"재고 보유",customer:"토스페이먼츠",category:"ACC",mpn:"MXK73KH/A",itemName:"MAGIC KEYBOARD TOUCH ID Numeric Keypad-KOR White",qty:4,orderStatus:"납품 가능",invoice:"3/4일 발행",notes:"",deliveries:[{id:1,qty:4,date:"2026-03-04",status:"완료",note:""}]},
-  {id:10,quoteDate:"2026-03-09",orderDate:"2026-03-11",customer:"비바리퍼블리카(토스코어)",category:"Mac",mpn:"Z1MK000XH",itemName:"MBP 14 SL/M5 Max 18C CPU/40C GPU/64GB/2TB-KOR",qty:20,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
-  {id:11,quoteDate:"2026-03-09",orderDate:"2026-03-11",customer:"비바리퍼블리카(토스코어)",category:"Mac",mpn:"Z1MY0003H",itemName:"MBP 16 SL/M5 Max 18C CPU/40C GPU/64GB/2TB-KOR",qty:10,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
-  {id:12,quoteDate:"2026-03-09",orderDate:"백록",customer:"비바리퍼블리카(토스코어)",category:"Mac",mpn:"MU9D3KH/A",itemName:"MAC MINI/M4 10C CPU/10C GPU/16GB/256GB-KOR",qty:15,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[{id:1,qty:15,date:"2026-04-08",status:"대기",note:""}]},
-  {id:13,quoteDate:"2026-03-09",orderDate:"2026-02-23",customer:"비바리퍼블리카(토스코어)",category:"Mac",mpn:"Z1CF",itemName:"MAC MINI/M4 10C CPU/10C GPU/32GB/256GB-KOR",qty:5,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
-  {id:14,quoteDate:"2026-03-12",orderDate:"2026-03-04",customer:"토스증권",category:"Mac",mpn:"Z1JV",itemName:"MAC MINI/M4 Pro 14C CPU/20C GPU/64GB/2TB-KOR",qty:2,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
-  {id:15,quoteDate:"2026-02-27",orderDate:"백록",customer:"비바리퍼블리카(토스코어)",category:"Mac",mpn:"MU9D3KH/A",itemName:"MAC MINI/M4 10C CPU/10C GPU/16GB/256GB-KOR",qty:20,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[{id:1,qty:20,date:"2026-04-08",status:"대기",note:""}]},
-  {id:16,quoteDate:"2026-03-06",orderDate:"백록",customer:"토스뱅크",category:"Mac",mpn:"Z1L0000Q0",itemName:"MBA 13 SL/M5 10C CPU/10C GPU/24GB/512GB-KOR",qty:5,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
-  {id:17,quoteDate:"2026-03-06",orderDate:"백록",customer:"토스뱅크",category:"Mac",mpn:"Z1LQ0001V",itemName:"MBA 15 SL/M5 10C CPU/10C GPU/24GB/512GB-KOR",qty:5,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
-  {id:18,quoteDate:"2026-03-06",orderDate:"2026-03-06",customer:"토스뱅크",category:"Mac",mpn:"Z1MK000XH",itemName:"MBP 14 SL/M5 Max 18C CPU/40C GPU/64GB/2TB-KOR",qty:30,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
-  {id:19,quoteDate:"2026-03-06",orderDate:"2026-03-06",customer:"토스뱅크",category:"Mac",mpn:"Z1MY0003H",itemName:"MBP 16 SL/M5 Max 18C CPU/40C GPU/64GB/2TB-KOR",qty:30,orderStatus:"발주 완료 및 대기",invoice:"",notes:"12대 우선 납품",deliveries:[]},
-  {id:20,quoteDate:"2026-03-06",orderDate:"백록",customer:"토스페이먼츠",category:"Mac",mpn:"Z1L0000Q0",itemName:"MBA 13 SL/M5 10C CPU/10C GPU/24GB/512GB-KOR",qty:6,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
-  {id:21,quoteDate:"2026-03-06",orderDate:"2026-03-12",customer:"토스페이먼츠",category:"Mac",mpn:"Z1MK000XH",itemName:"MBP 14 SL/M5 Max 18C CPU/40C GPU/64GB/2TB-KOR",qty:3,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
-  {id:22,quoteDate:"2026-03-06",orderDate:"2026-03-12",customer:"토스페이먼츠",category:"Mac",mpn:"Z1MY0003H",itemName:"MBP 16 SL/M5 Max 18C CPU/40C GPU/64GB/2TB-KOR",qty:10,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
-  {id:23,quoteDate:"2026-03-10",orderDate:"재고 보유 및 3.11일 발주",customer:"토스인컴",category:"ACC",mpn:"MW2L3KH/A 외",itemName:"96W USB-C POWER ADAPTER-KOR",qty:23,orderStatus:"96W, Lightning 발주",invoice:"월말 합발행",notes:"MUW13KH/A 3개, MW2L3KH/A 5개, MUQ93FE/A 3개 따로 납품",deliveries:[{id:1,qty:4,date:"2026-03-12",status:"완료",note:""},{id:2,qty:3,date:"2026-04-14",status:"대기",note:""}]},
-  {id:24,quoteDate:"2026-03-10",orderDate:"2026-03-10",customer:"파이인스티튜트오브디자인",category:"Mac",mpn:"Z1ML",itemName:"MBP 14 SB/M5 Pro 18C CPU/20C GPU/48GB/1TB-KOR",qty:2,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
-  {id:25,quoteDate:"2026-03-12",orderDate:"2026-03-12",customer:"토스증권",category:"Mac",mpn:"Z1MK000XH",itemName:"MBP 14 SL/M5 Max 18C CPU/40C GPU/64GB/2TB-KOR",qty:40,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
-  {id:26,quoteDate:"2026-03-12",orderDate:"백록",customer:"토스증권",category:"Mac",mpn:"Z1LQ0001V",itemName:"MBA 15 SL/M5 10C CPU/10C GPU/24GB/512GB-KOR",qty:10,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
-  {id:27,quoteDate:"2026-03-12",orderDate:"재고 보유",customer:"토스인컴",category:"ACC",mpn:"MXK73KH/A 외",itemName:"MAGIC KEYBOARD TOUCH ID NUM KEY WH-KOR",qty:3,orderStatus:"납품 가능",invoice:"월말 합발행",notes:"",deliveries:[{id:1,qty:3,date:"2026-03-19",status:"완료",note:""}]},
-  {id:28,quoteDate:"2026-03-12",orderDate:"2026-03-23",customer:"토스증권",category:"Mac",mpn:"Z1CF",itemName:"MAC MINI/M4 10C CPU/10C GPU/32GB/256GB-KOR",qty:10,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
-  {id:29,quoteDate:"2026-03-12",orderDate:"2026-03-23",customer:"토스증권",category:"DISP",mpn:"MFF14KH/A",itemName:"STUDIO DISPLAY NANO/TILT/1M-KOR",qty:3,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
-  {id:30,quoteDate:"2026-03-13",orderDate:"2026-03-13",customer:"비바리퍼블리카(토스코어)",category:"Mac",mpn:"Z1JV001D3",itemName:"MAC MINI/M4 Pro 12C CPU/16C GPU/48GB/1TB-KOR",qty:2,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
-  {id:31,quoteDate:"2026-03-17",orderDate:"2026-03-18",customer:"토스인컴",category:"Mac",mpn:"Z1LQ0001V",itemName:"MBA 15 SL/M5 10C CPU/10C GPU/24GB/512GB-KOR",qty:2,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
-  {id:32,quoteDate:"2026-03-17",orderDate:"백록",customer:"토스인슈어런스",category:"Mac",mpn:"Z1MK000XH",itemName:"MBP 14 SL/M5 Max 18C CPU/40C GPU/64GB/2TB-KOR",qty:2,orderStatus:"발주 완료 및 대기",invoice:"",notes:"13대 발주넣음.",deliveries:[]},
-  {id:33,quoteDate:"2026-03-17",orderDate:"백록",customer:"토스인슈어런스",category:"Mac",mpn:"Z1LQ0001V",itemName:"MBA 15 SL/M5 10C CPU/10C GPU/24GB/512GB-KOR",qty:2,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
-  {id:34,quoteDate:"2026-03-19",orderDate:"2026-03-19",customer:"토스뱅크",category:"DISP",mpn:"MFEX4KH/A",itemName:"STUDIO DISPLAY STANDARD/TILT/1M-KOR",qty:2,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
-  {id:35,quoteDate:"2026-03-20",orderDate:"DPP",customer:"토스뱅크",category:"Mac",mpn:"MCYT4KH/A",itemName:"MAC MINI/M4 10C CPU/10C GPU/24GB/512GB-KOR",qty:8,orderStatus:"납품 가능",invoice:"3/24일 발행",notes:"",deliveries:[{id:1,qty:8,date:"2026-03-24",status:"완료",note:""}]},
-  {id:36,quoteDate:"2026-03-20",orderDate:"DPP",customer:"토스뱅크",category:"Mac",mpn:"MCX44KH/A",itemName:"MAC MINI/M4 Pro 12C CPU/16C GPU/24GB/512GB-KOR",qty:15,orderStatus:"",invoice:"",notes:"",deliveries:[]},
-  {id:37,quoteDate:"2026-03-23",orderDate:"2026-03-23",customer:"토스인슈어런스",category:"Mac",mpn:"Z1MK000XH",itemName:"MBP 14 SL/M5 Max 18C CPU/40C GPU/64GB/2TB-KOR",qty:3,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
-  {id:38,quoteDate:"2026-03-24",orderDate:"2026-03-25",customer:"토스증권",category:"Mac",mpn:"Z1JV",itemName:"MAC MINI/M4 Pro 14C CPU/20C GPU/64GB/2TB-KOR",qty:1,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
-  {id:39,quoteDate:"2026-03-25",orderDate:"백록",customer:"토스플레이스",category:"Mac",mpn:"Z1L0000Q0",itemName:"MBA 13 SL/M5 10C CPU/10C GPU/24GB/512GB-KOR",qty:3,orderStatus:"발주 완료 및 대기",invoice:"",notes:"입고 50대중 3대 사용",deliveries:[]},
-  {id:40,quoteDate:"2026-03-25",orderDate:"2026-03-25",customer:"토스플레이스",category:"Mac",mpn:"Z1MK000XH",itemName:"MBP 14 SL/M5 Max 18C CPU/40C GPU/64GB/2TB-KOR",qty:10,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
-  {id:41,quoteDate:"2026-03-25",orderDate:"2026-03-25",customer:"토스플레이스",category:"Mac",mpn:"Z1MY0003H",itemName:"MBP 16 SL/M5 Max 18C CPU/40C GPU/64GB/2TB-KOR",qty:10,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
-  {id:42,quoteDate:"2026-03-25",orderDate:"재고 보유",customer:"토스플레이스",category:"ACC",mpn:"MXK73KH/A",itemName:"MAGIC KEYBOARD TOUCH ID NUM KEY WH-KOR",qty:3,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
-  {id:43,quoteDate:"2026-03-25",orderDate:"재고 보유",customer:"토스플레이스",category:"ACC",mpn:"MXCK3KH/A",itemName:"MAGIC KEYBOARD TOUCH ID-KOR (USB-C to USB-C)",qty:3,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
-  {id:44,quoteDate:"2026-03-25",orderDate:"재고 보유",customer:"토스플레이스",category:"ACC",mpn:"MXK53KH/A",itemName:"MAGIC MOUSE WH-KOR",qty:3,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
-  {id:45,quoteDate:"2026-03-25",orderDate:"재고 보유",customer:"토스페이먼츠",category:"ACC",mpn:"MXK73KH/A",itemName:"MAGIC KEYBOARD TOUCH ID NUM KEY WH-KOR",qty:3,orderStatus:"납품 가능",invoice:"4/1일 발행",notes:"",deliveries:[{id:1,qty:3,date:"2026-04-01",status:"완료",note:""}]},
-  {id:46,quoteDate:"2026-03-18",orderDate:"재고 보유",customer:"비바리퍼블리카(토스코어)",category:"iPad",mpn:"MCFV4KH/A",itemName:"IPAD AIR M3 11 WF CL 128GB 스페이스그레이-KOR",qty:23,orderStatus:"납품 가능",invoice:"3/26일 발행",notes:"",deliveries:[{id:1,qty:23,date:"2026-03-26",status:"완료",note:""}]},
-  {id:47,quoteDate:"2026-03-18",orderDate:"2026-03-18",customer:"비바리퍼블리카(토스코어)",category:"iPad",mpn:"MCFV4KH/A",itemName:"IPAD AIR M3 11 WF CL 128GB 스페이스그레이-KOR",qty:2,orderStatus:"",invoice:"",notes:"",deliveries:[]},
-  {id:48,quoteDate:"2026-03-18",orderDate:"2026-03-18",customer:"비바리퍼블리카(토스코어)",category:"iPad",mpn:"MCFW4KH/A",itemName:"IPAD AIR M3 11 WF CL 128GB 블루-KOR",qty:1,orderStatus:"",invoice:"",notes:"",deliveries:[]},
-  {id:49,quoteDate:"2026-03-18",orderDate:"2026-03-18",customer:"비바리퍼블리카(토스코어)",category:"iPad",mpn:"MCFX4KH/A",itemName:"IPAD AIR M3 11 WF CL 128GB 스타라이트-KOR",qty:1,orderStatus:"",invoice:"",notes:"",deliveries:[]},
-  {id:50,quoteDate:"2026-03-18",orderDate:"2026-03-18",customer:"비바리퍼블리카(토스코어)",category:"iPad",mpn:"MCFY4KH/A",itemName:"IPAD AIR M3 11 WF CL 128GB 퍼플-KOR",qty:2,orderStatus:"",invoice:"",notes:"",deliveries:[]},
-  {id:51,quoteDate:"2026-03-26",orderDate:"DPP",customer:"토스뱅크",category:"Mac",mpn:"MU9D3KH/A",itemName:"MAC MINI/M4 10C CPU/10C GPU/16GB/256GB-KOR",qty:40,orderStatus:"발주 완료 및 대기",invoice:"",notes:"10대 홀딩 요청상태",deliveries:[{id:1,qty:14,date:"2026-04-06",status:"완료",note:""},{id:2,qty:16,date:"",status:"대기",note:""},{id:3,qty:10,date:"",status:"홀딩",note:"홀딩 요청"}]},
-  {id:52,quoteDate:"2026-03-27",orderDate:"2026-03-31",customer:"파이인스티튜트오브디자인",category:"Mac",mpn:"MCYT4KH/A",itemName:"MAC MINI/M4 10C CPU/10C GPU/24GB/512GB-KOR",qty:33,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
-  {id:53,quoteDate:"2026-04-03",orderDate:"2026-04-03",customer:"토스증권",category:"Mac",mpn:"Z1MK000XH",itemName:"MBP 14 SL/M5 Max 18C CPU/40C GPU/64GB/2TB-KOR",qty:60,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
-  {id:54,quoteDate:"2026-04-03",orderDate:"2026-04-03",customer:"토스증권",category:"Mac",mpn:"Z1LQ0001V",itemName:"MBA 15 SL/M5 10C CPU/10C GPU/24GB/512GB-KOR",qty:10,orderStatus:"발주 완료 및 대기",invoice:"",notes:"입고 50대중 10대 사용",deliveries:[]},
+  {id:1,quoteDate:"2026-01-08",orderDate:"2026-01-10",customer:"(주)알파테크놀로지",category:"Mac",mpn:"Z1MK000XH",itemName:"MBP 14 SL/M5 Max 18C CPU/40C GPU/64GB/2TB-KOR",qty:10,orderStatus:"납품 가능",invoice:"1/20일 발행",invoiceDate:"2026-01-20",notes:"",deliveries:[{id:1,qty:10,date:"2026-01-20",status:"완료",invoiceDate:"2026-01-20",invoiceMemo:""}]},
+  {id:2,quoteDate:"2026-01-15",orderDate:"2026-01-16",customer:"베타디자인연구소",category:"Mac",mpn:"Z1MY0003H",itemName:"MBP 16 SL/M5 Max 18C CPU/40C GPU/64GB/2TB-KOR",qty:3,orderStatus:"납품 가능",invoice:"1/28일 발행",invoiceDate:"2026-01-28",notes:"",deliveries:[{id:1,qty:3,date:"2026-01-28",status:"완료",invoiceDate:"2026-01-28",invoiceMemo:""}]},
+  {id:3,quoteDate:"2026-02-03",orderDate:"2026-02-05",customer:"(주)감마증권",category:"DISP",mpn:"MYJK3KH/A",itemName:"STUDIO DISPLAY NANO/TILT/1M-KOR",qty:4,orderStatus:"발주 취소",invoice:"",notes:"",deliveries:[]},
+  {id:4,quoteDate:"2026-02-10",orderDate:"2026-02-12",customer:"(주)델타인컴",category:"ACC",mpn:"MXK73KH/A",itemName:"MAGIC KEYBOARD TOUCH ID NUM KEY WH-KOR",qty:5,orderStatus:"납품 가능",invoice:"2/20일 발행",invoiceDate:"2026-02-20",notes:"",deliveries:[{id:1,qty:5,date:"2026-02-20",status:"완료",invoiceDate:"2026-02-20",invoiceMemo:""}]},
+  {id:5,quoteDate:"2026-02-14",orderDate:"2026-02-14",customer:"(주)엡실론페이",category:"Mac",mpn:"Z1L0000Q0",itemName:"MBA 13 SL/M5 10C CPU/10C GPU/24GB/512GB-KOR",qty:6,orderStatus:"납품 가능",invoice:"2/25일 발행",invoiceDate:"2026-02-25",notes:"",deliveries:[{id:1,qty:6,date:"2026-02-25",status:"완료",invoiceDate:"2026-02-25",invoiceMemo:""}]},
+  {id:6,quoteDate:"2026-02-20",orderDate:"2026-02-21",customer:"(주)제타뱅크",category:"Mac",mpn:"MU9D3KH/A",itemName:"MAC MINI/M4 10C CPU/10C GPU/16GB/256GB-KOR",qty:12,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[{id:1,qty:12,date:"2026-04-10",status:"대기",invoiceDate:"",invoiceMemo:""}]},
+  {id:7,quoteDate:"2026-02-25",orderDate:"재고 보유",customer:"(주)에타인슈어런스",category:"iPad",mpn:"MCFV4KH/A",itemName:"IPAD AIR M3 11 WF CL 128GB 스페이스그레이-KOR",qty:8,orderStatus:"납품 가능",invoice:"3/5일 발행",invoiceDate:"2026-03-05",notes:"",deliveries:[{id:1,qty:8,date:"2026-03-05",status:"완료",invoiceDate:"2026-03-05",invoiceMemo:""}]},
+  {id:8,quoteDate:"2026-03-04",orderDate:"2026-03-05",customer:"(주)세타커머스",category:"Mac",mpn:"Z1LQ0001V",itemName:"MBA 15 SL/M5 10C CPU/10C GPU/24GB/512GB-KOR",qty:5,orderStatus:"납품 가능",invoice:"3/15일 발행",invoiceDate:"2026-03-15",notes:"",deliveries:[{id:1,qty:5,date:"2026-03-15",status:"완료",invoiceDate:"2026-03-15",invoiceMemo:""}]},
+  {id:9,quoteDate:"2026-03-10",orderDate:"2026-03-11",customer:"(주)알파테크놀로지",category:"Mac",mpn:"Z1CE000BD",itemName:"MAC STUDIO/32C CPU/80C GPU/96G/2TB-KOR",qty:2,orderStatus:"납품 가능",invoice:"3/20일 발행",invoiceDate:"2026-03-20",notes:"",deliveries:[{id:1,qty:2,date:"2026-03-20",status:"완료",invoiceDate:"2026-03-20",invoiceMemo:""}]},
+  {id:10,quoteDate:"2026-03-12",orderDate:"2026-03-13",customer:"(주)감마증권",category:"Mac",mpn:"Z1MK000XH",itemName:"MBP 14 SL/M5 Max 18C CPU/40C GPU/64GB/2TB-KOR",qty:15,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
+  {id:11,quoteDate:"2026-03-18",orderDate:"2026-03-19",customer:"(주)제타뱅크",category:"Mac",mpn:"MCYT4KH/A",itemName:"MAC MINI/M4 10C CPU/10C GPU/24GB/512GB-KOR",qty:10,orderStatus:"납품 가능",invoice:"3/28일 발행",invoiceDate:"2026-03-28",notes:"",deliveries:[{id:1,qty:10,date:"2026-03-28",status:"완료",invoiceDate:"2026-03-28",invoiceMemo:""}]},
+  {id:12,quoteDate:"2026-03-20",orderDate:"2026-03-21",customer:"베타디자인연구소",category:"ACC",mpn:"MXK53KH/A",itemName:"MAGIC MOUSE WH-KOR",qty:5,orderStatus:"납품 가능",invoice:"3/25일 발행",invoiceDate:"2026-03-25",notes:"",deliveries:[{id:1,qty:5,date:"2026-03-25",status:"완료",invoiceDate:"2026-03-25",invoiceMemo:""}]},
+  {id:13,quoteDate:"2026-03-25",orderDate:"2026-03-26",customer:"(주)엡실론페이",category:"Mac",mpn:"Z1MY0003H",itemName:"MBP 16 SL/M5 Max 18C CPU/40C GPU/64GB/2TB-KOR",qty:5,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[{id:1,qty:5,date:"2026-05-10",status:"대기",invoiceDate:"",invoiceMemo:""}]},
+  {id:14,quoteDate:"2026-04-02",orderDate:"2026-04-03",customer:"(주)델타인컴",category:"Mac",mpn:"Z1CF",itemName:"MAC MINI/M4 10C CPU/10C GPU/32GB/256GB-KOR",qty:8,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
+  {id:15,quoteDate:"2026-04-07",orderDate:"2026-04-08",customer:"(주)세타커머스",category:"DISP",mpn:"MFEX4KH/A",itemName:"STUDIO DISPLAY STANDARD/TILT/1M-KOR",qty:3,orderStatus:"발주 완료 및 대기",invoice:"",notes:"",deliveries:[]},
 ];
 
-const CUSTOMERS=["비바리퍼블리카(토스코어)","파이인스티튜트오브디자인","토스증권","토스인컴","토스페이먼츠","토스뱅크","토스인슈어런스","토스플레이스"];
+const DEFAULT_CUSTOMERS=["비바리퍼블리카(토스코어)","파이인스티튜트오브디자인","토스증권","토스인컴","토스페이먼츠","토스뱅크","토스인슈어런스","토스플레이스","토스모바일","토스밴"];
 const CATEGORIES=["Mac","iPad","ACC","DISP"];
 const ORDER_STATUS_OPTIONS=["발주 완료","납품 가능","발주 취소"];
 const DELIVERY_STATUS_OPTIONS=["대기","완료","취소","홀딩"];
 
-/* ── 가격표 (기밀 — HTML 내부에만 존재, 외부 전송 없음) ── */
-/* 업데이트: 2026-03-25 토스 표준 가격표 기준 */
+/* ── 가격표 (Apple 공개 MSRP 기준 샘플 데이터) ── */
 const PRICE_LIST=[
   /* ── Mac ── */
-  {lob:"Mac",desc:"MBP 14 M5 Max 64GB/2TB",msrp:6840000,svo:5720000,m:(p,n)=>p==="Z1MK000XH"||/Z1MK/i.test(p)||(n.includes("MBP 14")&&n.includes("M5 MAX"))},
-  {lob:"Mac",desc:"MBP 16 M5 Max 64GB/2TB",msrp:7490000,svo:6264000,m:(p,n)=>p==="Z1MY0003H"||/Z1MY/i.test(p)||(n.includes("MBP 16")&&n.includes("M5 MAX"))},
-  {lob:"Mac",desc:"MBA 13 M5 24GB/512GB",msrp:2090000,svo:1748000,m:(p,n)=>p==="Z1L0000Q0"||/Z1L0/i.test(p)||(n.includes("MBA 13")&&n.includes("M5"))},
-  {lob:"Mac",desc:"MBA 15 M5 24GB/512GB",msrp:2390000,svo:1998000,m:(p,n)=>p==="Z1LQ0001V"||/Z1LQ/i.test(p)||(n.includes("MBA 15")&&n.includes("M5"))},
-  {lob:"Mac",desc:"Mac mini M4 16GB/256GB",msrp:890000,svo:744000,m:(p,n)=>p==="MU9D3KH/A"||(n.includes("MAC MINI")&&n.includes("16GB")&&n.includes("256GB")&&!n.includes("PRO"))},
-  {lob:"Mac",desc:"Mac mini M4 16GB/512GB",msrp:1190000,svo:995000,m:(p,n)=>p==="MU9E3KH/A"||(n.includes("MAC MINI")&&n.includes("16GB")&&n.includes("512GB")&&!n.includes("PRO"))},
-  {lob:"Mac",desc:"Mac mini M4 32GB/256GB",msrp:1490000,svo:1246000,m:(p,n)=>/Z1CF/i.test(p)||(n.includes("MAC MINI")&&n.includes("32GB")&&n.includes("256GB")&&!n.includes("PRO"))},
-  {lob:"Mac",desc:"Mac mini M4 32GB/512GB",msrp:1790000,svo:1497000,m:(p,n)=>p==="Z1JX0001X"||/Z1JX/i.test(p)||(n.includes("MAC MINI")&&n.includes("32GB")&&n.includes("512GB")&&!n.includes("PRO"))},
-  {lob:"Mac",desc:"Mac Studio M3 Ultra 96GB/1TB",msrp:8840000,svo:7393000,m:(p,n)=>/Z1CE/i.test(p)||n.includes("MAC STUDIO")},
+  {lob:"Mac",desc:"MBP 14 M5 Max 64GB/2TB",msrp:6840000,svo:5746000,m:(p,n)=>p==="Z1MK000XH"||/Z1MK/i.test(p)||(n.includes("MBP 14")&&n.includes("M5 MAX"))},
+  {lob:"Mac",desc:"MBP 16 M5 Max 64GB/2TB",msrp:7490000,svo:6292000,m:(p,n)=>p==="Z1MY0003H"||/Z1MY/i.test(p)||(n.includes("MBP 16")&&n.includes("M5 MAX"))},
+  {lob:"Mac",desc:"MBA 13 M5 24GB/512GB",msrp:2090000,svo:1756000,m:(p,n)=>p==="Z1L0000Q0"||/Z1L0/i.test(p)||(n.includes("MBA 13")&&n.includes("M5"))},
+  {lob:"Mac",desc:"MBA 15 M5 24GB/512GB",msrp:2390000,svo:2008000,m:(p,n)=>p==="Z1LQ0001V"||/Z1LQ/i.test(p)||(n.includes("MBA 15")&&n.includes("M5"))},
+  {lob:"Mac",desc:"Mac mini M4 16GB/256GB",msrp:890000,svo:748000,m:(p,n)=>p==="MU9D3KH/A"||(n.includes("MAC MINI")&&n.includes("16GB")&&n.includes("256GB")&&!n.includes("PRO"))},
+  {lob:"Mac",desc:"Mac mini M4 16GB/512GB",msrp:1190000,svo:1000000,m:(p,n)=>p==="MU9E3KH/A"||(n.includes("MAC MINI")&&n.includes("16GB")&&n.includes("512GB")&&!n.includes("PRO"))},
+  {lob:"Mac",desc:"Mac mini M4 32GB/256GB",msrp:1490000,svo:1252000,m:(p,n)=>/Z1CF/i.test(p)||(n.includes("MAC MINI")&&n.includes("32GB")&&n.includes("256GB")&&!n.includes("PRO"))},
+  {lob:"Mac",desc:"Mac mini M4 32GB/512GB",msrp:1790000,svo:1504000,m:(p,n)=>p==="Z1JX0001X"||/Z1JX/i.test(p)||(n.includes("MAC MINI")&&n.includes("32GB")&&n.includes("512GB")&&!n.includes("PRO"))},
+  {lob:"Mac",desc:"Mac Studio M3 Ultra 96GB/1TB",msrp:8840000,svo:7426000,m:(p,n)=>/Z1CE/i.test(p)||n.includes("MAC STUDIO")},
   /* ── Display ── */
-  {lob:"DISP",desc:"Studio Display Standard",msrp:3099000,svo:2704000,m:(p,n)=>["MFEW4KH/A","MFEX4KH/A"].includes(p)||(n.includes("STUDIO DISPLAY")&&n.includes("STANDARD"))},
-  {lob:"DISP",desc:"Studio Display Nano",msrp:2999000,svo:2617000,m:(p,n)=>["MFF14KH/A","MYJK3KH/A"].includes(p)||(n.includes("STUDIO DISPLAY")&&n.includes("NANO"))},
+  {lob:"DISP",desc:"Studio Display Standard",msrp:3099000,svo:2603000,m:(p,n)=>["MFEW4KH/A","MFEX4KH/A"].includes(p)||(n.includes("STUDIO DISPLAY")&&n.includes("STANDARD"))},
+  {lob:"DISP",desc:"Studio Display Nano",msrp:2999000,svo:2519000,m:(p,n)=>["MFF14KH/A","MYJK3KH/A"].includes(p)||(n.includes("STUDIO DISPLAY")&&n.includes("NANO"))},
   /* ── ACC ── */
-  {lob:"ACC",desc:"Magic Keyboard Touch ID USB-C",msrp:199000,svo:170000,m:(p,n)=>p==="MXCK3KH/A"||(n.includes("MAGIC KEYBOARD")&&n.includes("USB-C TO USB-C")&&!n.includes("NUMERIC")&&!n.includes("NUM KEY"))},
-  {lob:"ACC",desc:"Magic Keyboard Numeric",msrp:249000,svo:212000,m:(p,n)=>p==="MXK73KH/A"||(n.includes("MAGIC KEYBOARD")&&(n.includes("NUMERIC")||n.includes("NUM KEY")||n.includes("KEYPAD")))},
-  {lob:"ACC",desc:"Magic Trackpad",msrp:169000,svo:144000,m:(p,n)=>p==="MXK93KH/A"||n.includes("TRACKPAD")},
-  {lob:"ACC",desc:"Magic Mouse",msrp:99000,svo:84600,m:(p,n)=>p==="MXK53KH/A"||n.includes("MAGIC MOUSE")},
+  {lob:"ACC",desc:"Magic Keyboard Touch ID USB-C",msrp:199000,svo:167000,m:(p,n)=>p==="MXCK3KH/A"||(n.includes("MAGIC KEYBOARD")&&n.includes("USB-C TO USB-C")&&!n.includes("NUMERIC")&&!n.includes("NUM KEY"))},
+  {lob:"ACC",desc:"Magic Keyboard Numeric",msrp:249000,svo:209000,m:(p,n)=>p==="MXK73KH/A"||(n.includes("MAGIC KEYBOARD")&&(n.includes("NUMERIC")||n.includes("NUM KEY")||n.includes("KEYPAD")))},
+  {lob:"ACC",desc:"Magic Trackpad",msrp:169000,svo:142000,m:(p,n)=>p==="MXK93KH/A"||n.includes("TRACKPAD")},
+  {lob:"ACC",desc:"Magic Mouse",msrp:99000,svo:83000,m:(p,n)=>p==="MXK53KH/A"||n.includes("MAGIC MOUSE")},
   {lob:"ACC",desc:"20W USB-C Adapter",msrp:28000,svo:23900,m:(p,n)=>p==="MUW13KH/A"||(n.includes("20W")&&n.includes("ADAPTER"))},
   {lob:"ACC",desc:"35W Dual USB-C Adapter",msrp:85000,svo:72600,m:(p,n)=>p==="MW2K3KH/A"||n.includes("35W")},
   {lob:"ACC",desc:"70W USB-C Adapter",msrp:85000,svo:72600,m:(p,n)=>p==="MXN53KH/A"||(n.includes("70W")&&n.includes("ADAPTER"))},
-  {lob:"ACC",desc:"96W USB-C Adapter",msrp:99000,svo:84600,m:(p,n)=>p==="MW2L3KH/A"||(n.includes("96W")&&n.includes("ADAPTER"))},
+  {lob:"ACC",desc:"96W USB-C Adapter",msrp:99000,svo:83000,m:(p,n)=>p==="MW2L3KH/A"||(n.includes("96W")&&n.includes("ADAPTER"))},
   {lob:"ACC",desc:"140W USB-C Adapter",msrp:139000,svo:118700,m:(p,n)=>p==="MW2M3KH/A"||n.includes("140W")},
   {lob:"ACC",desc:"EarPods 3.5mm",msrp:28000,svo:23900,m:(p,n)=>p==="MWU53FE/A"||n.includes("EARPODS (3.5MM)")},
   {lob:"ACC",desc:"EarPods USB-C",msrp:28000,svo:23900,m:(p,n)=>p==="MYQY3ZP/A"||n.includes("EARPODS (USB-C)")},
@@ -222,13 +182,13 @@ const PRICE_LIST=[
   {lob:"ACC",desc:"60W USB-C Cable 1m",msrp:28000,svo:23900,m:(p,n)=>p==="MW493FE/A"||(n.includes("60W")&&n.includes("CABLE"))},
   {lob:"ACC",desc:"240W USB-C Cable 2m",msrp:45000,svo:38400,m:(p,n)=>p==="MYQT3FE/A"||(n.includes("240W")&&n.includes("CABLE"))},
   /* ── AppleCare+ ── */
-  {lob:"AC",desc:"AppleCare+ MBP 14 M5",msrp:429000,svo:331000,m:(p,n)=>p==="SCXT3ZX/A"||n.includes("APPLECARE")&&n.includes("14")&&n.includes("M5")},
-  {lob:"AC",desc:"AppleCare+ MBP 16 M5",msrp:599000,svo:462000,m:(p,n)=>p==="SCXU3ZX/A"||n.includes("APPLECARE")&&n.includes("16")&&n.includes("M5")},
-  {lob:"AC",desc:"AppleCare+ MBA 13 M5",msrp:299000,svo:231000,m:(p,n)=>p==="SCW83ZX/A"||n.includes("APPLECARE")&&n.includes("AIR 13")&&n.includes("M5")},
-  {lob:"AC",desc:"AppleCare+ MBA 15 M5",msrp:349000,svo:269000,m:(p,n)=>p==="SCW93ZX/A"||n.includes("APPLECARE")&&n.includes("AIR 15")&&n.includes("M5")},
-  {lob:"AC",desc:"AppleCare+ Mac mini M4",msrp:129000,svo:99000,m:(p,n)=>p==="SR1C2ZX/A"||n.includes("APPLECARE")&&n.includes("MINI")&&n.includes("M4")},
-  {lob:"AC",desc:"AppleCare+ Mac Studio M3",msrp:219000,svo:169000,m:(p,n)=>p==="STKT2ZX/A"||n.includes("APPLECARE")&&n.includes("STUDIO")&&n.includes("M3")},
-  {lob:"AC",desc:"AppleCare+ Studio Display",msrp:229000,svo:176000,m:(p,n)=>p==="SD273ZX/A"||n.includes("APPLECARE")&&n.includes("DISPLAY")},
+  {lob:"AC",desc:"AppleCare+ MBP 14 M5",msrp:429000,svo:361000,m:(p,n)=>p==="SCXT3ZX/A"||n.includes("APPLECARE")&&n.includes("14")&&n.includes("M5")},
+  {lob:"AC",desc:"AppleCare+ MBP 16 M5",msrp:599000,svo:503000,m:(p,n)=>p==="SCXU3ZX/A"||n.includes("APPLECARE")&&n.includes("16")&&n.includes("M5")},
+  {lob:"AC",desc:"AppleCare+ MBA 13 M5",msrp:299000,svo:251000,m:(p,n)=>p==="SCW83ZX/A"||n.includes("APPLECARE")&&n.includes("AIR 13")&&n.includes("M5")},
+  {lob:"AC",desc:"AppleCare+ MBA 15 M5",msrp:349000,svo:293000,m:(p,n)=>p==="SCW93ZX/A"||n.includes("APPLECARE")&&n.includes("AIR 15")&&n.includes("M5")},
+  {lob:"AC",desc:"AppleCare+ Mac mini M4",msrp:129000,svo:108000,m:(p,n)=>p==="SR1C2ZX/A"||n.includes("APPLECARE")&&n.includes("MINI")&&n.includes("M4")},
+  {lob:"AC",desc:"AppleCare+ Mac Studio M3",msrp:219000,svo:184000,m:(p,n)=>p==="STKT2ZX/A"||n.includes("APPLECARE")&&n.includes("STUDIO")&&n.includes("M3")},
+  {lob:"AC",desc:"AppleCare+ Studio Display",msrp:229000,svo:192000,m:(p,n)=>p==="SD273ZX/A"||n.includes("APPLECARE")&&n.includes("DISPLAY")},
 ];
 /* 카테고리 할인율 (단가표 미등록 품목 fallback) */
 const CAT_RATE={Mac:0.08,iPad:0.06,ACC:0.06,DISP:0.04,AC:0.15};
@@ -368,7 +328,89 @@ function parseQuotationExcel(rawRows){
   return {items, quoteDate, customer, mode:"structured"};
 }
 
-const emptyForm=()=>({quoteDate:"",orderDate:"",orderDateMemo:"",customer:CUSTOMERS[0],category:"Mac",mpn:"",itemName:"",qty:1,orderStatus:"발주 완료 및 대기",invoice:"",invoiceDate:"",notes:"",deliveries:[]});
+const emptyForm=(customers,orderType="수주")=>({quoteDate:"",orderDate:"",orderDateMemo:"",customer:(customers||DEFAULT_CUSTOMERS)[0],category:"Mac",mpn:"",itemName:"",qty:1,orderStatus:"발주 완료 및 대기",invoice:"",invoiceDate:"",notes:"",deliveries:[],orderType});
+
+/* ══════════════ 커스텀 날짜 선택기 ══════════════ */
+function DatePicker({value, onChange, placeholder="날짜 선택", style={}, inputStyle={}}){
+  const [open,setOpen]=useState(false);
+  const [pos,setPos]=useState({top:0,left:0,w:290});
+  const triggerRef=useRef();
+  const popupRef=useRef();
+  const today=new Date();
+  const parsed=value?new Date(value+'T00:00:00'):null;
+  const [viewYear,setViewYear]=useState((parsed||today).getFullYear());
+  const [viewMonth,setViewMonth]=useState((parsed||today).getMonth());
+  function openCalendar(){
+    if(triggerRef.current){
+      const r=triggerRef.current.getBoundingClientRect();
+      const POPUP_H=340;
+      const spaceBelow=window.innerHeight-r.bottom;
+      const above=spaceBelow<POPUP_H&&r.top>POPUP_H;
+      const left=Math.min(r.left, window.innerWidth-300);
+      setPos({top:above?r.top-POPUP_H-6:r.bottom+6,left:Math.max(4,left),w:Math.max(r.width,290)});
+    }
+    setOpen(o=>!o);
+  }
+  useEffect(()=>{
+    if(!open) return;
+    function h(e){
+      if(triggerRef.current&&!triggerRef.current.contains(e.target)&&
+         popupRef.current&&!popupRef.current.contains(e.target))
+        setOpen(false);
+    }
+    document.addEventListener('mousedown',h);
+    return()=>document.removeEventListener('mousedown',h);
+  },[open]);
+  useEffect(()=>{if(parsed){setViewYear(parsed.getFullYear());setViewMonth(parsed.getMonth());}},[value]);
+  const daysInMonth=new Date(viewYear,viewMonth+1,0).getDate();
+  const firstDay=new Date(viewYear,viewMonth,1).getDay();
+  function select(day){
+    const d=`${viewYear}-${String(viewMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    onChange({target:{value:d}});setOpen(false);
+  }
+  const displayStr=parsed?`${parsed.getFullYear()}. ${String(parsed.getMonth()+1).padStart(2,'0')}. ${String(parsed.getDate()).padStart(2,'0')}.`:"";
+  const MONTHS=['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+  const DAYS=['일','월','화','수','목','금','토'];
+  const popup=(
+    <div ref={popupRef} style={{position:"fixed",top:pos.top,left:pos.left,zIndex:99999,background:"rgba(255,255,255,0.98)",backdropFilter:"blur(20px) saturate(160%)",WebkitBackdropFilter:"blur(20px) saturate(160%)",border:"1.5px solid #C7D2FE",borderRadius:16,boxShadow:"0 8px 40px rgba(79,70,229,0.22)",padding:"18px",minWidth:290,width:pos.w}} onClick={e=>e.stopPropagation()}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
+        <button onClick={()=>{if(viewMonth===0){setViewMonth(11);setViewYear(y=>y-1);}else setViewMonth(m=>m-1);}} style={{border:"none",background:"#EEF2FF",color:"#4F46E5",borderRadius:8,width:32,height:32,cursor:"pointer",fontSize:18,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>‹</button>
+        <span style={{fontSize:15,fontWeight:800,color:"#191F28"}}>{viewYear}년 {MONTHS[viewMonth]}</span>
+        <button onClick={()=>{if(viewMonth===11){setViewMonth(0);setViewYear(y=>y+1);}else setViewMonth(m=>m+1);}} style={{border:"none",background:"#EEF2FF",color:"#4F46E5",borderRadius:8,width:32,height:32,cursor:"pointer",fontSize:18,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>›</button>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",marginBottom:8}}>
+        {DAYS.map((d,i)=><div key={d} style={{textAlign:"center",fontSize:11,fontWeight:700,color:i===0?"#EF4444":i===6?"#4F46E5":"#8B95A1",padding:"4px 0"}}>{d}</div>)}
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:3}}>
+        {Array(firstDay).fill(null).map((_,i)=><div key={`e${i}`}/>)}
+        {Array(daysInMonth).fill(null).map((_,i)=>{
+          const day=i+1;
+          const ds=`${viewYear}-${String(viewMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+          const isSel=value===ds;
+          const isTod=today.getFullYear()===viewYear&&today.getMonth()===viewMonth&&today.getDate()===day;
+          const dow=(firstDay+i)%7;
+          return(
+            <button key={day} onClick={()=>select(day)} style={{border:"none",borderRadius:8,padding:"8px 0",fontSize:13,cursor:"pointer",background:isSel?"#4F46E5":isTod?"#EEF2FF":"transparent",color:isSel?"#fff":isTod?"#4F46E5":dow===0?"#EF4444":dow===6?"#6366F1":"#191F28",fontWeight:isSel||isTod?700:400}}>
+              {day}
+            </button>
+          );
+        })}
+      </div>
+      {value&&<div style={{marginTop:12,textAlign:"center"}}>
+        <button onClick={()=>{onChange({target:{value:""}});setOpen(false);}} style={{border:"none",background:"none",color:"#8B95A1",fontSize:12,cursor:"pointer",textDecoration:"underline"}}>날짜 초기화</button>
+      </div>}
+    </div>
+  );
+  return(
+    <div style={{position:"relative",...style}}>
+      <div ref={triggerRef} onClick={openCalendar} style={{border:"1.5px solid #C7D2FE",borderRadius:10,padding:"9px 12px",fontSize:13,cursor:"pointer",background:"#fff",display:"flex",alignItems:"center",justifyContent:"space-between",color:displayStr?"#191F28":"#B0B8C1",userSelect:"none",...inputStyle}}>
+        <span>{displayStr||placeholder}</span>
+        <span style={{color:"#6366F1",fontSize:13,marginLeft:6}}>📅</span>
+      </div>
+      {open&&ReactDOM.createPortal(popup,document.body)}
+    </div>
+  );
+}
 
 /* ══════════════ 납품 관리 모달 ══════════════ */
 function DeliveryModal({row, onClose, onSave}){
@@ -519,7 +561,7 @@ function DeliveryModal({row, onClose, onSave}){
                 {/* 날짜 */}
                 <div style={{marginBottom:10}}>
                   <div style={{fontSize:11,fontWeight:600,color:"#8B95A1",marginBottom:3}}>납품 예정일</div>
-                  <input style={{border:"1.5px solid #E5E8EB",borderRadius:8,padding:"7px 10px",fontSize:13,outline:"none",width:"100%"}} type="date" value={d.date} onChange={e=>{updateD(d.id,"date",e.target.value);e.target.blur();}}/>
+                  <DatePicker value={d.date} onChange={e=>updateD(d.id,"date",e.target.value)} inputStyle={{border:"1.5px solid #E5E8EB",fontSize:13,borderRadius:8,padding:"7px 10px"}}/>
                 </div>
 
                 {/* 상태 */}
@@ -544,7 +586,7 @@ function DeliveryModal({row, onClose, onSave}){
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
                     <div>
                       <div style={{fontSize:10,fontWeight:600,color:"#8B95A1",marginBottom:3}}>발행일</div>
-                      <input style={{border:"1.5px solid #E5E8EB",borderRadius:6,padding:"6px 8px",fontSize:12,outline:"none",width:"100%",boxSizing:"border-box"}} type="date" value={d.invoiceDate||""} onChange={e=>{updateD(d.id,"invoiceDate",e.target.value);e.target.blur();}}/>
+                      <DatePicker value={d.invoiceDate||""} onChange={e=>updateD(d.id,"invoiceDate",e.target.value)} inputStyle={{border:"1.5px solid #E5E8EB",fontSize:12,borderRadius:6,padding:"6px 8px"}}/>
                     </div>
                     <div>
                       <div style={{fontSize:10,fontWeight:600,color:"#8B95A1",marginBottom:3}}>메모</div>
@@ -576,8 +618,8 @@ function DeliveryModal({row, onClose, onSave}){
 }
 
 /* ══════════════ 추가/수정 모달 ══════════════ */
-function AddEditModal({initial, onClose, onSave}){
-  const [form,setForm]=useState(initial||emptyForm());
+function AddEditModal({initial, onClose, onSave, customers=DEFAULT_CUSTOMERS, convertMode=false}){
+  const [form,setForm]=useState(initial||emptyForm(customers));
   const [subItems,setSubItems]=useState(initial?.subItems||[]);
   const [nextSId,setNextSId]=useState(100);
   const set=(k,v)=>setForm(f=>({...f,[k]:v}));
@@ -592,21 +634,21 @@ function AddEditModal({initial, onClose, onSave}){
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.35)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(12px)"}} onClick={onClose}>
       <div style={{background:"rgba(255,255,255,0.88)",backdropFilter:"blur(24px) saturate(160%)",WebkitBackdropFilter:"blur(24px) saturate(160%)",borderRadius:20,width:"min(580px,96vw)",maxHeight:"92vh",overflowY:"auto",boxShadow:"0 16px 56px rgba(0,0,0,0.18),inset 0 1px 0 rgba(255,255,255,0.9)",border:"1px solid rgba(255,255,255,0.6)"}} onClick={e=>e.stopPropagation()}>
         <div style={{background:"#111218",padding:"20px 24px",borderRadius:"20px 20px 0 0",color:"#fff"}}>
-          <div style={{fontSize:16,fontWeight:800}}>{initial?.id?"✏️ 수주 수정":"➕ 새 발주 등록"}</div>
+          <div style={{fontSize:16,fontWeight:800}}>{convertMode?"📦 수정 후 발주 전환":initial?.id?"✏️ 수주 수정":"➕ 새 수주 등록"}</div>
         </div>
         <div style={{padding:"20px 24px"}}>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 14px"}}>
-            <div style={grp}><label style={lbl}>견적일</label><input style={inp} type="date" value={form.quoteDate} onChange={e=>{set("quoteDate",e.target.value);e.target.blur();}}/></div>
+            <div style={grp}><label style={lbl}>견적일</label><DatePicker value={form.quoteDate} onChange={e=>set("quoteDate",e.target.value)}/></div>
             <div style={grp}>
               <label style={lbl}>수발주일</label>
-              <input style={inp} type="date" value={form.orderDate||""} onChange={e=>{set("orderDate",e.target.value);e.target.blur();}}/>
+              <DatePicker value={form.orderDate||""} onChange={e=>set("orderDate",e.target.value)} placeholder="수발주일 선택"/>
             </div>
             <div style={grp}>
               <label style={lbl}>수발주 메모</label>
               <input style={inp} value={form.orderDateMemo||""} onChange={e=>set("orderDateMemo",e.target.value)} placeholder="백록, DPP, 재고 보유 등"/>
             </div>
           </div>
-          <div style={grp}><label style={lbl}>매출처명</label><select style={inp} value={form.customer} onChange={e=>set("customer",e.target.value)}>{CUSTOMERS.map(c=><option key={c}>{c}</option>)}</select></div>
+          <div style={grp}><label style={lbl}>매출처명</label><select style={inp} value={form.customer} onChange={e=>set("customer",e.target.value)}>{customers.map(c=><option key={c}>{c}</option>)}</select></div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 14px"}}>
             <div style={grp}><label style={lbl}>구분</label><select style={inp} value={form.category} onChange={e=>set("category",e.target.value)}>{CATEGORIES.map(c=><option key={c}>{c}</option>)}</select></div>
             <div style={grp}><label style={lbl}>수량 (메인 품목)</label><input style={inp} type="number" value={form.qty} onChange={e=>set("qty",+e.target.value)}/></div>
@@ -616,7 +658,7 @@ function AddEditModal({initial, onClose, onSave}){
           <div style={grp}><label style={lbl}>발주 확인</label><select style={inp} value={form.orderStatus} onChange={e=>set("orderStatus",e.target.value)}>{ORDER_STATUS_OPTIONS.map(o=><option key={o}>{o}</option>)}</select></div>
           <div style={grp}>
             <label style={lbl}>계산서 발행일</label>
-            <input type="date" style={inp} value={form.invoiceDate||""} onChange={e=>{set("invoiceDate",e.target.value);e.target.blur();}}/>
+            <DatePicker value={form.invoiceDate||""} onChange={e=>set("invoiceDate",e.target.value)} placeholder="발행일 선택"/>
           </div>
           <div style={grp}>
             <label style={lbl}>계산서 메모</label>
@@ -657,7 +699,9 @@ function AddEditModal({initial, onClose, onSave}){
 }
 
 /* ══════════════ 상세 모달 ══════════════ */
-function DetailModal({row, onClose}){
+function DetailModal({row, onClose, attachments={}, onPatch, onToggleAtt, onOpenDelivery, onOpenInvoice}){
+  const [localStatus,setLocalStatus]=useState(row.orderStatus||"");
+  const [localAtt,setLocalAtt]=useState(attachments[row.id]||{});
   const del=calcDelivery(row);
   const subItems=row.subItems||[];
   const totalQty=(row.qty||0)+subItems.reduce((s,i)=>s+(+i.qty||0),0);
@@ -670,8 +714,7 @@ function DetailModal({row, onClose}){
         return `${prefix}${d.invoiceMemo}`;
       }).join("  /  ");
     }
-    const d=row.invoiceDate;
-    const m=row.invoice;
+    const d=row.invoiceDate; const m=row.invoice;
     if(d){const[,mo,dd]=d.split("-");const label=`${parseInt(mo)}/${parseInt(dd)} 발행`;return m?`${label} · ${m}`:label;}
     return m||"-";
   })();
@@ -685,9 +728,12 @@ function DetailModal({row, onClose}){
   const hasBatchInvoice=(row.deliveries||[]).some(d=>d.invoiceDate||d.invoiceMemo);
   const isFullyDone=del.type==="done"&&(hasBatchInvoice||row.invoiceDate||row.invoice);
   const deliveryDates=(row.deliveries||[]).filter(d=>d.status==="완료"&&d.date).map(d=>{const[,m,dd]=d.date.split("-");return `${parseInt(m)}/${parseInt(dd)}`;}).join(", ");
-  const pairs=[["매출처",row.customer],["구분",row.category],["견적일",row.quoteDate],["수발주일",orderDateDisplay],["발주 확인",row.orderStatus||"-"],
+  const pairs=[["매출처",row.customer],["구분",row.category],["견적일",row.quoteDate],["수발주일",orderDateDisplay],
     ...(isFullyDone&&deliveryDates?[["납품 날짜",deliveryDates]]:[]),
     ["계산서",invoiceDisplay],["특이사항",row.notes||"-"]];
+  function changeStatus(s){setLocalStatus(s);onPatch&&onPatch(row.id,{orderStatus:s});}
+  function toggleDoc(key){const nv=!localAtt[key];setLocalAtt(a=>({...a,[key]:nv}));onToggleAtt&&onToggleAtt(row.id,key);}
+  const DOC_LABELS=[["quote","견적서"],["serial","일련번호"],["inspect","검수확인서"]];
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.35)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(12px)"}} onClick={onClose}>
       <div style={{background:"rgba(255,255,255,0.88)",backdropFilter:"blur(24px) saturate(160%)",WebkitBackdropFilter:"blur(24px) saturate(160%)",borderRadius:20,width:"min(560px,96vw)",maxHeight:"88vh",overflowY:"auto",boxShadow:"0 16px 56px rgba(0,0,0,0.18),inset 0 1px 0 rgba(255,255,255,0.9)",border:"1px solid rgba(255,255,255,0.6)"}} onClick={e=>e.stopPropagation()}>
@@ -740,6 +786,37 @@ function DetailModal({row, onClose}){
               <div style={{fontSize:13,color:"#191F28",flex:1,wordBreak:"break-all"}}>{v}</div>
             </div>
           ))}
+
+          {/* ── 빠른 변경 액션 ── */}
+          <div style={{marginTop:20,borderTop:"1.5px solid #EEF2FF",paddingTop:16,display:"flex",flexDirection:"column",gap:14}}>
+            {/* 발주 확인 */}
+            <div>
+              <div style={{fontSize:11,fontWeight:700,color:"#8B95A1",marginBottom:8}}>발주 확인</div>
+              <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                {ORDER_STATUS_OPTIONS.map(s=>{
+                  const st=orderStatusStyle(s);
+                  const active=localStatus===s;
+                  return <button key={s} onClick={()=>changeStatus(s)} style={{padding:"5px 12px",borderRadius:20,border:active?`1.5px solid ${st.color}`:"1.5px solid #E5E8EB",background:active?st.bg:"#fff",color:active?st.color:"#8B95A1",fontSize:12,fontWeight:active?700:400,cursor:"pointer"}}>{s}</button>;
+                })}
+              </div>
+            </div>
+            {/* 서류 */}
+            <div>
+              <div style={{fontSize:11,fontWeight:700,color:"#8B95A1",marginBottom:8}}>서류</div>
+              <div style={{display:"flex",gap:8}}>
+                {DOC_LABELS.map(([key,label])=>{
+                  const on=localAtt[key];
+                  return <button key={key} onClick={()=>toggleDoc(key)} style={{padding:"6px 14px",borderRadius:20,border:on?"1.5px solid #00B252":"1.5px solid #E5E8EB",background:on?"#E6F9EE":"#fff",color:on?"#00843D":"#8B95A1",fontSize:12,fontWeight:on?700:400,cursor:"pointer"}}>{on?"✅ ":"☐ "}{label}</button>;
+                })}
+              </div>
+            </div>
+            {/* 납품/계산서 */}
+            <div style={{display:"flex",gap:8}}>
+              <button onClick={()=>{onOpenDelivery&&onOpenDelivery(row);onClose();}} style={{flex:1,padding:"9px",borderRadius:10,border:"1.5px solid #C7D2FE",background:"#EEF2FF",color:"#4F46E5",fontSize:13,fontWeight:700,cursor:"pointer"}}>📦 납품 관리</button>
+              <button onClick={()=>{onOpenInvoice&&onOpenInvoice(row);onClose();}} style={{flex:1,padding:"9px",borderRadius:10,border:"1.5px solid #C7D2FE",background:"#EEF2FF",color:"#4F46E5",fontSize:13,fontWeight:700,cursor:"pointer"}}>🧾 계산서</button>
+            </div>
+          </div>
+
           <div style={{paddingTop:16,textAlign:"right"}}>
             <button style={{border:"none",background:"#4F46E5",color:"#fff",borderRadius:10,padding:"10px 28px",fontSize:14,fontWeight:700,cursor:"pointer"}} onClick={onClose}>닫기</button>
           </div>
@@ -750,7 +827,8 @@ function DetailModal({row, onClose}){
 }
 
 /* ══════════════ 엑셀 가져오기 모달 ══════════════ */
-function ImportModal({onClose, onImport}){
+function ImportModal({onClose, onImport, existingOrders, customers=DEFAULT_CUSTOMERS, subTab="발주"}){
+  const isReceiving=subTab==="수주";
   const [step,setStep]=useState(1);
   const [parsed,setParsed]=useState(null);
   const [quoteFile,setQuoteFile]=useState(null);
@@ -770,7 +848,7 @@ function ImportModal({onClose, onImport}){
         const result=parseQuotationExcel(rawRows);
         setParsed(result);
         if(result.customer){
-          const matched=CUSTOMERS.find(c=>c.includes(result.customer)||result.customer.includes(c.split("(")[0]));
+          const matched=customers.find(c=>c.includes(result.customer)||result.customer.includes(c.split("(")[0]));
           setMapping(m=>({...m,customer:matched||result.customer}));
         }
         if(result.quoteDate) setMapping(m=>({...m,quoteDate:result.quoteDate}));
@@ -785,30 +863,42 @@ function ImportModal({onClose, onImport}){
     const file=e.dataTransfer.files[0];
     if(file) processFile(file);
   }
+  function buildOrders(){
+    const baseFields={customer:mapping.customer||customers[0],quoteDate:mapping.quoteDate||new Date().toISOString().slice(0,10),orderDate:mapping.orderDate,orderDateMemo:mapping.orderDateMemo||"",orderStatus:mapping.orderStatus};
+    const itemsWithCat=parsed.items.map((it,i)=>({...it,category:itemCategories[i]||"Mac"}));
+    const groups={};
+    itemsWithCat.forEach(it=>{ const cat=it.category; if(!groups[cat]) groups[cat]=[]; groups[cat].push(it); });
+    return Object.entries(groups).map(([cat,items])=>{
+      const [first,...rest]=items;
+      return{...emptyForm(customers),...first,...baseFields,category:cat,subItems:rest.map((si,i)=>({id:100+i,mpn:si.mpn||"",itemName:si.itemName||"",qty:si.qty||1}))};
+    });
+  }
   function doImport(){
     if(!parsed?.items?.length){alert("가져올 항목이 없습니다."); return;}
-    const baseFields={customer:mapping.customer||CUSTOMERS[0],quoteDate:mapping.quoteDate||new Date().toISOString().slice(0,10),orderDate:mapping.orderDate,orderDateMemo:mapping.orderDateMemo||"",orderStatus:mapping.orderStatus};
-    // 품목별 LOB 붙이기
-    const itemsWithCat=parsed.items.map((it,i)=>({...it,category:itemCategories[i]||"Mac"}));
-    // LOB별 그룹핑
-    const groups={};
-    itemsWithCat.forEach(it=>{
-      const cat=it.category;
-      if(!groups[cat]) groups[cat]=[];
-      groups[cat].push(it);
-    });
-    const orders=Object.entries(groups).map(([cat,items])=>{
-      const [first,...rest]=items;
-      return{
-        ...emptyForm(),...first,...baseFields,
-        category:cat,
-        subItems:rest.map((si,i)=>({id:100+i,mpn:si.mpn||"",itemName:si.itemName||"",qty:si.qty||1})),
-      };
-    });
-    onImport(orders, quoteFile);
+    if(!isReceiving&&!mapping.orderDate&&!mapping.orderDateMemo){
+      alert("수발주일 또는 수발주 메모 중 하나는 반드시 입력해주세요.");
+      return;
+    }
+    const newOrders=buildOrders();
+    const dups=newOrders.filter(n=>(existingOrders||[]).some(o=>o.mpn===n.mpn&&o.quoteDate===n.quoteDate&&o.customer===n.customer));
+    if(dups.length>0){
+      const ok=window.confirm(`⚠️ 중복 발주 감지\n\n${dups.length}건이 기존 발주와 중복됩니다.\n그래도 가져오시겠습니까?`);
+      if(!ok) return;
+    }
+    if(!isReceiving){
+      const ok=window.confirm("수주탭이 아닌 바로 발주탭으로 등록됩니다.\n진행하시겠습니까?");
+      if(!ok) return;
+    }
+    const finalOrders=newOrders.map(o=>({...o,orderType:isReceiving?"수주":"발주"}));
+    onImport(finalOrders, quoteFile);
     onClose();
   }
-  const inp={border:"1.5px solid #E5E8EB",borderRadius:8,padding:"7px 10px",fontSize:13,outline:"none",width:"100%"};
+  const inp={border:"1.5px solid #C7D2FE",borderRadius:10,padding:"9px 12px",fontSize:13,outline:"none",width:"100%",color:"#191F28",height:40,boxSizing:"border-box"};
+  const sel={...inp,WebkitAppearance:"none",appearance:"none",backgroundImage:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236366F1'/%3E%3C/svg%3E")`,backgroundRepeat:"no-repeat",backgroundPosition:"right 12px center",paddingRight:34};
+  const dpStyle={inputStyle:{height:40,boxSizing:"border-box",borderRadius:10,padding:"9px 12px"}};
+  const needsOne=!isReceiving&&!mapping.orderDate&&!mapping.orderDateMemo;
+  const redBorder="1.5px solid #F04452";
+  const dpRed={inputStyle:{...dpStyle.inputStyle,border:redBorder}};
   const lbl={fontSize:11,fontWeight:600,color:"#8B95A1",marginBottom:4,display:"block"};
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.35)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(12px)"}} onClick={onClose}>
@@ -885,29 +975,31 @@ function ImportModal({onClose, onImport}){
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 14px"}}>
                 <div style={{marginBottom:12}}>
                   <label style={lbl}>매출처</label>
-                  <select style={inp} value={mapping.customer} onChange={e=>setMapping(m=>({...m,customer:e.target.value}))}><option value="">-- 선택 --</option>{CUSTOMERS.map(c=><option key={c}>{c}</option>)}</select>
+                  <select style={sel} value={mapping.customer} onChange={e=>setMapping(m=>({...m,customer:e.target.value}))}><option value="">-- 선택 --</option>{customers.map(c=><option key={c}>{c}</option>)}</select>
                 </div>
                 <div style={{marginBottom:12}}>
-                  <label style={lbl}>견적일 {parsed.quoteDate&&<span style={{color:"#4F46E5"}}>(자동: {parsed.quoteDate})</span>}</label>
-                  <input style={inp} type="date" value={mapping.quoteDate} onChange={e=>{setMapping(m=>({...m,quoteDate:e.target.value}));e.target.blur();}}/>
+                  <label style={lbl}>{isReceiving?"견적 수주일":"견적일"} {parsed.quoteDate&&<span style={{color:"#4F46E5"}}>(자동: {parsed.quoteDate})</span>}</label>
+                  <DatePicker value={mapping.quoteDate} onChange={e=>setMapping(m=>({...m,quoteDate:e.target.value}))} inputStyle={dpStyle.inputStyle}/>
                 </div>
-                <div style={{marginBottom:12}}>
-                  <label style={lbl}>수발주일 (선택)</label>
-                  <input style={inp} type="date" value={mapping.orderDate||""} onChange={e=>{setMapping(m=>({...m,orderDate:e.target.value}));e.target.blur();}}/>
-                </div>
-                <div style={{marginBottom:12}}>
-                  <label style={lbl}>수발주 메모 (선택)</label>
-                  <input style={inp} value={mapping.orderDateMemo||""} onChange={e=>setMapping(m=>({...m,orderDateMemo:e.target.value}))} placeholder="백록, DPP, 재고 보유 등"/>
-                </div>
+                {!isReceiving&&<>
+                  <div style={{marginBottom:12}}>
+                    <label style={{...lbl,color:needsOne?"#F04452":"#8B95A1"}}>수발주일 {needsOne&&<span style={{fontWeight:700}}>*</span>}</label>
+                    <DatePicker value={mapping.orderDate||""} onChange={e=>setMapping(m=>({...m,orderDate:e.target.value}))} placeholder="수발주일 선택" inputStyle={needsOne?dpRed.inputStyle:dpStyle.inputStyle}/>
+                  </div>
+                  <div style={{marginBottom:12}}>
+                    <label style={{...lbl,color:needsOne?"#F04452":"#8B95A1"}}>수발주 메모 {needsOne&&<span style={{fontWeight:700}}>*</span>}</label>
+                    <input style={{...inp,border:needsOne?redBorder:"1.5px solid #C7D2FE"}} value={mapping.orderDateMemo||""} onChange={e=>setMapping(m=>({...m,orderDateMemo:e.target.value}))} placeholder="백록, DPP, 재고 보유 등"/>
+                  </div>
+                </>}
               </div>
-              <div style={{marginBottom:12}}>
+              {!isReceiving&&<div style={{marginBottom:12}}>
                 <label style={lbl}>발주 상태</label>
-                <select style={inp} value={mapping.orderStatus} onChange={e=>setMapping(m=>({...m,orderStatus:e.target.value}))}>{ORDER_STATUS_OPTIONS.map(o=><option key={o}>{o}</option>)}</select>
-              </div>
+                <select style={sel} value={mapping.orderStatus} onChange={e=>setMapping(m=>({...m,orderStatus:e.target.value}))}>{ORDER_STATUS_OPTIONS.map(o=><option key={o}>{o}</option>)}</select>
+              </div>}
               <div style={{display:"flex",gap:10,justifyContent:"flex-end",paddingTop:8,borderTop:"1px solid #F2F4F6"}}>
-                <button style={{border:"1px solid #E5E8EB",background:"#fff",color:"#8B95A1",borderRadius:10,padding:"10px 22px",fontSize:14,fontWeight:600,cursor:"pointer"}} onClick={()=>setStep(1)}>← 다시</button>
-                <button style={{border:"none",background:"#4F46E5",color:"#fff",borderRadius:10,padding:"10px 28px",fontSize:14,fontWeight:700,cursor:"pointer"}} onClick={doImport}>가져오기</button>
-              </div>
+                  <button style={{border:"1px solid #E5E8EB",background:"#fff",color:"#8B95A1",borderRadius:10,padding:"10px 22px",fontSize:14,fontWeight:600,cursor:"pointer"}} onClick={()=>setStep(1)}>← 다시</button>
+                  <button style={{border:"none",background:"#4F46E5",color:"#fff",borderRadius:10,padding:"10px 28px",fontSize:14,fontWeight:700,cursor:"pointer"}} onClick={doImport}>가져오기</button>
+                </div>
             </>
           )}
         </div>
@@ -1035,21 +1127,21 @@ function AttachModal({row, attachments, onClose, onSave}){
 /* ══════════════ 토스트 알림 ══════════════ */
 function ToastContainer({toasts}){
   return(
-    <div style={{position:"fixed",bottom:28,right:28,zIndex:9999,display:"flex",flexDirection:"column",gap:8,pointerEvents:"none"}}>
+    <div style={{position:"fixed",top:76,right:20,zIndex:9999,display:"flex",flexDirection:"column",gap:8,pointerEvents:"none"}}>
       {toasts.map(t=>(
         <div key={t.id} style={{
           display:"flex",alignItems:"center",gap:10,
           background:t.type==="error"?"rgba(239,68,68,0.92)":"rgba(79,70,229,0.92)",
           backdropFilter:"blur(16px) saturate(160%)",
           WebkitBackdropFilter:"blur(16px) saturate(160%)",
-          color:"#fff",borderRadius:12,padding:"12px 18px",
-          fontSize:13,fontWeight:500,
+          color:"#fff",borderRadius:14,padding:"16px 24px",
+          fontSize:15,fontWeight:500,
           boxShadow:"0 8px 32px rgba(0,0,0,0.18),inset 0 1px 0 rgba(255,255,255,0.15)",
           border:"1px solid rgba(255,255,255,0.18)",
           animation:"toastIn 0.25s ease",
-          minWidth:220,maxWidth:320,
+          minWidth:280,maxWidth:400,
         }}>
-          <span style={{fontSize:15}}>{t.type==="error"?"🗑":"✓"}</span>
+          <span style={{fontSize:20}}>{t.type==="error"?"🗑":"✓"}</span>
           <span>{t.msg}</span>
         </div>
       ))}
@@ -1134,7 +1226,7 @@ function StatsTab({orders,view}){
 }
 
 /* ══════════════ 매출 현황 탭 ══════════════ */
-function SalesTab({orders,view,setView}){
+function SalesTab({orders,view,setView,basis="quote"}){
   const [lobFilter,setLobFilter]=useState("전체");
   const [yearFilter,setYearFilter]=useState("전체");
   const [monthFilter,setMonthFilter]=useState("전체");
@@ -1148,26 +1240,32 @@ function SalesTab({orders,view,setView}){
     const subQty=(o.subItems||[]).reduce((s,i)=>s+(+i.qty||0),0);
     const qty=(o.qty||0)+subQty;
     const pi=getPriceInfo(o.mpn,o.itemName);
-    return{...o,_qty:qty,_pi:pi,_rev:pi.matched?pi.svo*qty:0,_gp:pi.matched?pi.gp*qty:0};
+    const invDate=(o.deliveries||[]).map(d=>d.invoiceDate).filter(Boolean).sort()[0]||o.invoiceDate||"";
+    return{...o,_qty:qty,_pi:pi,_rev:pi.matched?pi.svo*qty:0,_gp:pi.matched?pi.gp*qty:0,_invoiceDate:invDate};
   }),[active]);
 
-  // 연도/월 목록 추출
+  // basis에 따라 기준 날짜 필드 결정
+  const dateField=basis==="invoice"?"_invoiceDate":"quoteDate";
+
   const years=useMemo(()=>{
-    const s=new Set(enriched.map(o=>String(o.quoteDate||"").slice(0,4)).filter(y=>y.match(/^\d{4}$/)));
+    const base=basis==="invoice"?enriched.filter(o=>o._invoiceDate):enriched;
+    const s=new Set(base.map(o=>String(o[dateField]||"").slice(0,4)).filter(y=>y.match(/^\d{4}$/)));
     return["전체",...Array.from(s).sort()];
-  },[enriched]);
+  },[enriched,basis,dateField]);
   const months=useMemo(()=>{
-    const base=yearFilter==="전체"?enriched:enriched.filter(o=>String(o.quoteDate||"").startsWith(yearFilter));
-    const s=new Set(base.map(o=>String(o.quoteDate||"").slice(5,7)).filter(m=>m.match(/^\d{2}$/)));
+    const base2=(basis==="invoice"?enriched.filter(o=>o._invoiceDate):enriched)
+      .filter(o=>yearFilter==="전체"||String(o[dateField]||"").startsWith(yearFilter));
+    const s=new Set(base2.map(o=>String(o[dateField]||"").slice(5,7)).filter(m=>m.match(/^\d{2}$/)));
     return["전체",...Array.from(s).sort()];
-  },[enriched,yearFilter]);
+  },[enriched,yearFilter,basis,dateField]);
 
   const filtered=useMemo(()=>{
-    let d=lobFilter==="전체"?enriched:enriched.filter(o=>o.category===lobFilter);
-    if(yearFilter!=="전체") d=d.filter(o=>String(o.quoteDate||"").startsWith(yearFilter));
-    if(monthFilter!=="전체") d=d.filter(o=>String(o.quoteDate||"").slice(5,7)===monthFilter);
+    let d=basis==="invoice"?enriched.filter(o=>o._invoiceDate):enriched;
+    if(lobFilter!=="전체") d=d.filter(o=>o.category===lobFilter);
+    if(yearFilter!=="전체") d=d.filter(o=>String(o[dateField]||"").startsWith(yearFilter));
+    if(monthFilter!=="전체") d=d.filter(o=>String(o[dateField]||"").slice(5,7)===monthFilter);
     return d;
-  },[enriched,lobFilter,yearFilter,monthFilter]);
+  },[enriched,lobFilter,yearFilter,monthFilter,basis,dateField]);
 
   const totals=useMemo(()=>({
     cnt:filtered.length,
@@ -1181,8 +1279,8 @@ function SalesTab({orders,view,setView}){
     const map={};
     filtered.forEach(o=>{
       let key;
-      if(view==="month") key=String(o.quoteDate||"").slice(0,7)||"날짜없음";
-      else if(view==="week") key=getISOWeekLabel(o.quoteDate)||"날짜없음";
+      if(view==="month") key=String(o[dateField]||"").slice(0,7)||"날짜없음";
+      else if(view==="week") key=getISOWeekLabel(o[dateField])||"날짜없음";
       else key=o.category||"기타";
       if(!map[key]) map[key]={key,cnt:0,qty:0,rev:0,gp:0};
       map[key].cnt++; map[key].qty+=o._qty; map[key].rev+=o._rev; map[key].gp+=o._gp;
@@ -1327,7 +1425,7 @@ function SalesTab({orders,view,setView}){
       {/* 차트 */}
       <div style={{background:"rgba(255,255,255,0.88)",backdropFilter:"blur(20px) saturate(160%)",WebkitBackdropFilter:"blur(20px) saturate(160%)",borderRadius:16,border:"1px solid rgba(255,255,255,0.55)",boxShadow:"0 4px 24px rgba(0,0,0,0.06)",padding:"24px 24px 16px",marginBottom:16}}>
         <div style={{fontSize:13,fontWeight:700,color:"#374151",marginBottom:16}}>
-          {{month:"월별",week:"주별",lob:"LOB별"}[view]} 매출 현황
+          {{month:"월별",week:"주별",lob:"LOB별"}[view]} 매출 현황 <span style={{fontSize:11,fontWeight:500,color:"#9CA3AF",marginLeft:6}}>{basis==="invoice"?"계산서 기준":"견적서 기준"}</span>
         </div>
         <div style={{height:320,position:"relative"}}>
           <canvas ref={chartRef}/>
@@ -1388,7 +1486,7 @@ function SalesTab({orders,view,setView}){
 
       {/* ── 주별 요약 모달 ── */}
       {weekModal&&(()=>{
-        const wOrders=filtered.filter(o=>getISOWeekLabel(o.quoteDate)===weekModal);
+        const wOrders=filtered.filter(o=>getISOWeekLabel(o[dateField])===weekModal);
         const lobs=["Mac","iPad","ACC","DISP"];
         const lobData=lobs.map(lob=>{
           const rows=wOrders.filter(o=>o.category===lob);
@@ -1507,17 +1605,59 @@ function SalesTab({orders,view,setView}){
 
 /* ══════════════ 계산서 모달 ══════════════ */
 function InvoiceModal({row, onClose, onSave, onClear}){
+  const batchInvoices=(row.deliveries||[]).filter(d=>d.invoiceDate||d.invoiceMemo);
+  const hasData=!!(row.invoiceDate||row.invoice||batchInvoices.length>0);
+  const [editing,setEditing]=useState(!hasData);
   const [iDate,setIDate]=useState(row.invoiceDate||"");
   const [iMemo,setIMemo]=useState(row.invoice||"");
+  const ovl={position:"fixed",inset:0,background:"rgba(0,0,0,0.3)",backdropFilter:"blur(12px)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center"};
+  const box={background:"rgba(255,255,255,0.90)",backdropFilter:"blur(24px) saturate(160%)",WebkitBackdropFilter:"blur(24px) saturate(160%)",borderRadius:16,padding:"20px 24px",width:"min(360px,90vw)",boxShadow:"0 16px 48px rgba(0,0,0,0.16),inset 0 1px 0 rgba(255,255,255,0.9)",border:"1px solid rgba(255,255,255,0.6)"};
+  const formatDate=d=>{if(!d)return"";const[,m,day]=d.split("-");return`${parseInt(m)}월 ${parseInt(day)}일`;};
+  if(!editing){
+    // 표시할 날짜/메모: 발주 레벨 우선, 없으면 배치에서 수집
+    const displayDate=row.invoiceDate||(batchInvoices[0]?.invoiceDate)||"";
+    const displayMemo=row.invoice||(batchInvoices[0]?.invoiceMemo)||"";
+    const isBatchOnly=!row.invoiceDate&&!row.invoice&&batchInvoices.length>0;
+    return(
+      <div style={ovl} onClick={onClose}>
+        <div style={box} onClick={e=>e.stopPropagation()}>
+          <div style={{fontSize:14,fontWeight:700,marginBottom:4}}>🧾 세금계산서 발행 정보</div>
+          <div style={{fontSize:11,color:"#8B95A1",marginBottom:20}}>{row.customer} · {row.itemName}</div>
+          {/* 납품 배치에 계산서 정보가 여러 건이면 각각 표시 */}
+          {isBatchOnly?(
+            <div style={{marginBottom:20}}>
+              {batchInvoices.map((d,i)=>(
+                <div key={i} style={{background:"#EEF2FF",borderRadius:12,padding:"12px 16px",marginBottom:8,textAlign:"center"}}>
+                  <div style={{fontSize:10,fontWeight:600,color:"#6366F1",marginBottom:4}}>배치 {i+1} 발행일</div>
+                  <div style={{fontSize:20,fontWeight:800,color:"#4F46E5"}}>{formatDate(d.invoiceDate)||"—"}</div>
+                  {d.invoiceMemo&&<div style={{fontSize:12,color:"#6366F1",marginTop:4,fontWeight:500}}>{d.invoiceMemo}</div>}
+                </div>
+              ))}
+            </div>
+          ):(
+            <div style={{background:"#EEF2FF",borderRadius:12,padding:"16px 18px",marginBottom:20,textAlign:"center"}}>
+              <div style={{fontSize:11,fontWeight:600,color:"#6366F1",marginBottom:6}}>발행일</div>
+              <div style={{fontSize:22,fontWeight:800,color:"#4F46E5",letterSpacing:-0.5}}>{formatDate(displayDate)||"—"}</div>
+              {displayMemo&&<div style={{fontSize:12,color:"#6366F1",marginTop:6,fontWeight:500}}>{displayMemo}</div>}
+            </div>
+          )}
+          <div style={{display:"flex",gap:8}}>
+            <button style={{flex:2,background:"#4F46E5",color:"#fff",border:"none",borderRadius:10,padding:"10px",fontSize:13,fontWeight:700,cursor:"pointer"}} onClick={()=>setEditing(true)}>✏️ 편집</button>
+            <button style={{flex:1,background:"#FEF2F2",color:"#EF4444",border:"1px solid #FECACA",borderRadius:10,padding:"10px",fontSize:13,fontWeight:600,cursor:"pointer"}} onClick={onClear}>🗑 삭제</button>
+            <button style={{flex:1,background:"#F2F4F6",color:"#8B95A1",border:"none",borderRadius:10,padding:"10px",fontSize:13,cursor:"pointer"}} onClick={onClose}>닫기</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
   return(
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.3)",backdropFilter:"blur(12px)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={onClose}>
-      <div style={{background:"rgba(255,255,255,0.90)",backdropFilter:"blur(24px) saturate(160%)",WebkitBackdropFilter:"blur(24px) saturate(160%)",borderRadius:16,padding:"20px 24px",width:"min(360px,90vw)",boxShadow:"0 16px 48px rgba(0,0,0,0.16),inset 0 1px 0 rgba(255,255,255,0.9)",border:"1px solid rgba(255,255,255,0.6)"}} onClick={e=>e.stopPropagation()}>
+    <div style={ovl} onClick={onClose}>
+      <div style={box} onClick={e=>e.stopPropagation()}>
         <div style={{fontSize:14,fontWeight:700,marginBottom:4}}>🧾 세금계산서 발행 정보</div>
         <div style={{fontSize:11,color:"#8B95A1",marginBottom:16}}>{row.customer} · {row.itemName}</div>
         <div style={{marginBottom:12}}>
           <div style={{fontSize:11,fontWeight:700,color:"#8B95A1",marginBottom:6}}>발행일</div>
-          <input type="date" value={iDate} onChange={e=>{setIDate(e.target.value);e.target.blur();}}
-            style={{width:"100%",border:"1.5px solid #C7D2FE",borderRadius:10,padding:"9px 12px",fontSize:13,outline:"none",boxSizing:"border-box"}}/>
+          <DatePicker value={iDate} onChange={e=>setIDate(e.target.value)} placeholder="발행일 선택"/>
         </div>
         <div style={{marginBottom:16}}>
           <div style={{fontSize:11,fontWeight:700,color:"#8B95A1",marginBottom:6}}>메모 <span style={{fontWeight:400,color:"#B0B8C1"}}>(선택)</span></div>
@@ -1621,7 +1761,7 @@ function BulkModal({cnt, onClose, onApply}){
 }
 
 /* ══════════════ 로컬스토리지 헬퍼 ══════════════ */
-const LS_KEYS={orders:"toss_orders",nextId:"toss_nextId",att:"toss_att"};
+const LS_KEYS={orders:"toss_orders",nextId:"toss_nextId",att:"toss_att",customers:"toss_customers"};
 function lsLoad(key,fallback){
   try{ const v=localStorage.getItem(key); return v?JSON.parse(v):fallback; }
   catch{ return fallback; }
@@ -1630,13 +1770,147 @@ function lsSave(key,val){
   try{ localStorage.setItem(key,JSON.stringify(val)); }catch{}
 }
 
+/* ══════════════ Google Sheets API ══════════════ */
+const API_URL="https://script.google.com/macros/s/AKfycbyxH95yxepyrXx7HbX7RpWOeo61_VSBc5lV-oC0lwn40C3t9glDlX84xNXtGwgKlxwRSQ/exec";
+const API_KEY="ajGJuhqWhbvhWIjaQWDc@#!@$@";
+async function apiLoad(){
+  const r=await fetch(API_URL+"?key="+encodeURIComponent(API_KEY));
+  return await r.json();
+}
+async function apiSave(orders,customers,nextId,attachments){
+  await fetch(API_URL,{
+    method:"POST",
+    body:JSON.stringify({action:"save",key:API_KEY,orders,customers,nextId,attachments})
+  });
+}
+
+/* ══════════════ 매출처 관리 모달 ══════════════ */
+/* ══════════════ 수주→발주 전환 모달 ══════════════ */
+function ConvertToOrderModal({row, onClose, onConvert}){
+  const [orderDate, setOrderDate]=useState(row.orderDate||"");
+  const [orderDateMemo, setOrderDateMemo]=useState(row.orderDateMemo||"");
+  const [orderStatus, setOrderStatus]=useState(row.orderStatus||"발주 완료 및 대기");
+  const inp={border:"1.5px solid #E5E8EB",borderRadius:10,padding:"8px 11px",fontSize:13,outline:"none",width:"100%",color:"#191F28"};
+  const sel={...inp,WebkitAppearance:"none",appearance:"none",backgroundImage:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236366F1'/%3E%3C/svg%3E")`,backgroundRepeat:"no-repeat",backgroundPosition:"right 12px center",paddingRight:34};
+  const lbl={fontSize:12,fontWeight:600,color:"#8B95A1",marginBottom:4,display:"block"};
+  const ov={position:"fixed",inset:0,background:"rgba(13,15,28,0.55)",backdropFilter:"blur(6px)",zIndex:3000,display:"flex",alignItems:"center",justifyContent:"center"};
+  return(
+    <div style={ov} onClick={onClose}>
+      <div style={{background:"#fff",borderRadius:20,width:"min(440px,94vw)",boxShadow:"0 24px 60px rgba(79,70,229,0.18)",overflow:"hidden"}} onClick={e=>e.stopPropagation()}>
+        <div style={{background:"#111218",padding:"18px 24px",color:"#fff"}}>
+          <div style={{fontSize:15,fontWeight:800}}>📦 발주 전환</div>
+          <div style={{fontSize:12,color:"rgba(255,255,255,0.55)",marginTop:4}}>{row.mpn} · {row.customer}</div>
+        </div>
+        <div style={{padding:"20px 24px",display:"flex",flexDirection:"column",gap:14}}>
+          <div>
+            <label style={lbl}>수발주일 (선택)</label>
+            <DatePicker value={orderDate} onChange={e=>setOrderDate(e.target.value)} placeholder="수발주일 선택"/>
+          </div>
+          <div>
+            <label style={lbl}>수발주 메모 (선택)</label>
+            <input style={inp} value={orderDateMemo} onChange={e=>setOrderDateMemo(e.target.value)} placeholder="백록, DPP, 재고 보유 등"/>
+          </div>
+          <div>
+            <label style={lbl}>발주 상태</label>
+            <select style={sel} value={orderStatus} onChange={e=>setOrderStatus(e.target.value)}>{ORDER_STATUS_OPTIONS.map(o=><option key={o}>{o}</option>)}</select>
+          </div>
+        </div>
+        <div style={{display:"flex",gap:8,padding:"0 24px 20px"}}>
+          <button onClick={onClose} style={{flex:1,border:"1.5px solid #E2E8F0",background:"#fff",color:"#64748B",borderRadius:10,padding:"11px",fontSize:13,fontWeight:600,cursor:"pointer"}}>취소</button>
+          <button onClick={()=>{if(window.confirm("발주탭으로 이동하시겠습니까?")) onConvert({orderDate,orderDateMemo,orderStatus});}} style={{flex:2,border:"none",background:"#4F46E5",color:"#fff",borderRadius:10,padding:"11px",fontSize:13,fontWeight:700,cursor:"pointer"}}>발주탭으로 이동</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CustomerModal({customers, onClose, onChange}){
+  const [list, setList]=useState([...customers]);
+  const [newName, setNewName]=useState("");
+  const [editingIdx, setEditingIdx]=useState(null);
+  const [editingVal, setEditingVal]=useState("");
+  const inputRef=useRef();
+  function add(){
+    const name=newName.trim();
+    if(!name) return;
+    if(list.includes(name)){alert("이미 존재하는 매출처입니다.");return;}
+    setList(l=>[...l,name]);
+    setNewName("");
+    inputRef.current?.focus();
+  }
+  function remove(c){
+    if(!window.confirm(`'${c}'를 삭제하시겠습니까?`)) return;
+    setList(l=>l.filter(x=>x!==c));
+    if(editingIdx!==null) setEditingIdx(null);
+  }
+  function startEdit(i,c){setEditingIdx(i);setEditingVal(c);}
+  function confirmEdit(i){
+    const name=editingVal.trim();
+    if(!name){setEditingIdx(null);return;}
+    if(list.some((c,idx)=>c===name&&idx!==i)){alert("이미 존재하는 매출처입니다.");return;}
+    setList(l=>l.map((c,idx)=>idx===i?name:c));
+    setEditingIdx(null);
+  }
+  function save(){onChange(list);onClose();}
+  const ov={position:"fixed",inset:0,background:"rgba(13,15,28,0.55)",backdropFilter:"blur(6px)",zIndex:3000,display:"flex",alignItems:"center",justifyContent:"center"};
+  const box={background:"#fff",borderRadius:20,padding:"28px",width:"min(480px,94vw)",maxHeight:"80vh",display:"flex",flexDirection:"column",boxShadow:"0 24px 60px rgba(79,70,229,0.18)"};
+  return(
+    <div style={ov} onClick={onClose}>
+      <div style={box} onClick={e=>e.stopPropagation()}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
+          <span style={{fontSize:18,fontWeight:800,color:"#191F28"}}>매출처 관리</span>
+          <button onClick={onClose} style={{border:"none",background:"none",fontSize:20,cursor:"pointer",color:"#8B95A1",lineHeight:1}}>✕</button>
+        </div>
+        {/* 추가 입력 */}
+        <div style={{display:"flex",gap:8,marginBottom:16}}>
+          <input ref={inputRef} value={newName} onChange={e=>setNewName(e.target.value)} onKeyDown={e=>e.key==="Enter"&&add()} placeholder="새 매출처명 입력" style={{flex:1,border:"1.5px solid #C7D2FE",borderRadius:10,padding:"9px 12px",fontSize:13,outline:"none",color:"#191F28"}}/>
+          <button onClick={add} style={{border:"none",background:"#4F46E5",color:"#fff",borderRadius:10,padding:"9px 18px",fontSize:13,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap"}}>+ 추가</button>
+        </div>
+        {/* 목록 */}
+        <div style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column",gap:6}}>
+          {list.length===0&&<div style={{textAlign:"center",color:"#B0B8C1",padding:"24px 0",fontSize:13}}>매출처가 없습니다.</div>}
+          {list.map((c,i)=>(
+            <div key={i} style={{display:"flex",alignItems:"center",gap:8,background:"#F8F9FF",border:"1px solid "+(editingIdx===i?"#C7D2FE":"#EEF2FF"),borderRadius:10,padding:"8px 12px"}}>
+              <span style={{minWidth:20,height:20,borderRadius:6,background:"#EEF2FF",color:"#4F46E5",fontSize:11,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>{i+1}</span>
+              {editingIdx===i?(
+                <>
+                  <input autoFocus value={editingVal} onChange={e=>setEditingVal(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")confirmEdit(i);if(e.key==="Escape")setEditingIdx(null);}} style={{flex:1,border:"1.5px solid #4F46E5",borderRadius:8,padding:"5px 9px",fontSize:13,outline:"none",color:"#191F28"}}/>
+                  <button onClick={()=>confirmEdit(i)} style={{border:"none",background:"#4F46E5",color:"#fff",borderRadius:7,padding:"5px 11px",fontSize:12,fontWeight:700,cursor:"pointer"}}>확인</button>
+                  <button onClick={()=>setEditingIdx(null)} style={{border:"1px solid #E2E8F0",background:"#fff",color:"#64748B",borderRadius:7,padding:"5px 9px",fontSize:12,cursor:"pointer"}}>취소</button>
+                </>
+              ):(
+                <>
+                  <span style={{flex:1,fontSize:13,fontWeight:600,color:"#191F28"}}>{c}</span>
+                  <button onClick={()=>startEdit(i,c)} style={{border:"1px solid #C7D2FE",background:"#EEF2FF",color:"#4F46E5",borderRadius:7,padding:"4px 9px",fontSize:12,fontWeight:600,cursor:"pointer"}} title="수정">✏️</button>
+                  <button onClick={()=>remove(c)} style={{border:"none",background:"none",color:"#EF4444",fontSize:13,cursor:"pointer",padding:"4px 6px",borderRadius:6,fontWeight:600}} title="삭제">🗑</button>
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+        {/* 저장 */}
+        <div style={{display:"flex",gap:8,marginTop:20,paddingTop:16,borderTop:"1px solid #EEF2FF"}}>
+          <button onClick={onClose} style={{flex:1,border:"1.5px solid #E2E8F0",background:"#fff",color:"#64748B",borderRadius:10,padding:"11px",fontSize:13,fontWeight:600,cursor:"pointer"}}>취소</button>
+          <button onClick={save} style={{flex:2,border:"none",background:"#4F46E5",color:"#fff",borderRadius:10,padding:"11px",fontSize:13,fontWeight:700,cursor:"pointer"}}>저장</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ══════════════ 메인 앱 ══════════════ */
 function App(){
-  const [orders, setOrders]=useState(()=>lsLoad(LS_KEYS.orders,INITIAL_DATA));
-  const [attachments, setAttachments]=useState(()=>lsLoad(LS_KEYS.att,{})); // { [orderId]: {quote:bool, serial:bool, inspect:bool} }
-  const [nextId, setNextId]=useState(()=>lsLoad(LS_KEYS.nextId,INITIAL_DATA.length+1));
+  const [orders, setOrders]=useState([]);
+  const [attachments, setAttachments]=useState({}); // { [orderId]: {quote:bool, serial:bool, inspect:bool} }
+  const [nextId, setNextId]=useState(1);
+  const [customers, setCustomers]=useState(DEFAULT_CUSTOMERS);
+  const [dbLoaded, setDbLoaded]=useState(false);
+  const [syncing, setSyncing]=useState(false);
   const [tab, setTab]=useState("orders");
+  const [subTab, setSubTab]=useState("발주");
   const [salesView, setSalesView]=useState("month");
+  const [salesBasis, setSalesBasis]=useState("quote");
+  const [expandedSalesBasis, setExpandedSalesBasis]=useState("quote");
   const [statsView, setStatsView]=useState("customer");
   const [expandedNav, setExpandedNav]=useState(new Set(["orders"]));
   const [modal, setModal]=useState(null); // null | {type, ...}
@@ -1648,10 +1922,44 @@ function App(){
     setTimeout(()=>setToasts(t=>t.filter(x=>x.id!==id)),3000);
   }
 
-  // 자동 저장
-  useEffect(()=>{ lsSave(LS_KEYS.orders,orders); setSavedAt(new Date()); },[orders]);
-  useEffect(()=>{ lsSave(LS_KEYS.nextId,nextId); },[nextId]);
-  useEffect(()=>{ lsSave(LS_KEYS.att,attachments); },[attachments]);
+  // 초기 로드 (Google Sheets)
+  useEffect(()=>{
+    setSyncing(true);
+    apiLoad().then(data=>{
+      if(data.orders&&data.orders.length>0){
+        setOrders(data.orders);
+        setNextId(data.nextId||1);
+        setCustomers(data.customers&&data.customers.length>0?data.customers:DEFAULT_CUSTOMERS);
+        setAttachments(data.attachments||{});
+      } else {
+        // 시트가 비어있으면 로컬 데이터 마이그레이션
+        const lo=lsLoad(LS_KEYS.orders,INITIAL_DATA);
+        const lc=lsLoad(LS_KEYS.customers,DEFAULT_CUSTOMERS);
+        const ln=lsLoad(LS_KEYS.nextId,INITIAL_DATA.length+1);
+        const la=lsLoad(LS_KEYS.att,{});
+        setOrders(lo); setCustomers(lc); setNextId(ln); setAttachments(la);
+      }
+    }).catch(()=>{
+      // API 실패 시 로컬스토리지 폴백
+      setOrders(lsLoad(LS_KEYS.orders,INITIAL_DATA));
+      setCustomers(lsLoad(LS_KEYS.customers,DEFAULT_CUSTOMERS));
+      setNextId(lsLoad(LS_KEYS.nextId,INITIAL_DATA.length+1));
+      setAttachments(lsLoad(LS_KEYS.att,{}));
+      showToast("⚠️ 서버 연결 실패 — 로컬 데이터로 실행 중","error");
+    }).finally(()=>{ setDbLoaded(true); setSyncing(false); });
+  },[]);
+
+  // 자동 저장 (Google Sheets + localStorage 백업)
+  useEffect(()=>{ if(!dbLoaded) return;
+    lsSave(LS_KEYS.orders,orders); setSavedAt(new Date());
+    setSyncing(true);
+    const t=setTimeout(()=>{
+      apiSave(orders,customers,nextId,attachments)
+        .catch(()=>showToast("⚠️ 저장 실패","error"))
+        .finally(()=>setSyncing(false));
+    },800);
+    return()=>clearTimeout(t);
+  },[orders,customers,nextId,attachments,dbLoaded]);
 
   /* ── 데이터 백업 ── */
   function backupData(){
@@ -1725,17 +2033,18 @@ function App(){
 
   // KPI
   const kpi=useMemo(()=>{
-    const active=orders.filter(o=>!o.orderStatus?.includes("취소"));
+    const base=orders.filter(o=>(o.orderType||"발주")===subTab);
+    const active=base.filter(o=>!o.orderStatus?.includes("취소"));
     const done=active.filter(o=>{const d=calcDelivery(o);return d.type==="done";});
     const pending=active.filter(o=>{const d=calcDelivery(o);return d.type!=="done";});
-    const cancelled=orders.filter(o=>o.orderStatus?.includes("취소"));
-    return {total:orders.length,done:done.length,pending:pending.length,cancelled:cancelled.length};
-  },[orders]);
+    const cancelled=base.filter(o=>o.orderStatus?.includes("취소"));
+    return {total:base.length,done:done.length,pending:pending.length,cancelled:cancelled.length};
+  },[orders,subTab]);
 
 
   // 필터+정렬
   const filtered=useMemo(()=>{
-    let d=[...orders];
+    let d=orders.filter(r=>(r.orderType||"발주")===subTab);
     if(filterCustomer!=="전체") d=d.filter(r=>r.customer===filterCustomer);
     if(filterCat!=="전체") d=d.filter(r=>r.category===filterCat);
     if(filterStatus!=="전체"){
@@ -1767,7 +2076,7 @@ function App(){
       return sortAsc?cmp:-cmp;
     });
     return d;
-  },[orders,filterCustomer,filterCat,filterStatus,filterCompletion,filterMonth,search,sortKey,sortAsc]);
+  },[orders,subTab,filterCustomer,filterCat,filterStatus,filterCompletion,filterMonth,search,sortKey,sortAsc]);
 
   const totalPages=Math.max(1,Math.ceil(filtered.length/PAGE_SIZE));
   const pageData=filtered.slice((page-1)*PAGE_SIZE,page*PAGE_SIZE);
@@ -1780,9 +2089,9 @@ function App(){
       setOrders(o=>o.map(r=>r.id===form.id?{...form}:r));
       showToast("발주가 수정되었습니다.");
     } else {
-      setOrders(o=>[...o,{...form,id:nextId,deliveries:form.deliveries||[]}]);
+      setOrders(o=>[...o,{...form,id:nextId,deliveries:form.deliveries||[],orderType:form.orderType||"수주"}]);
       setNextId(n=>n+1);
-      showToast("발주가 등록되었습니다.");
+      showToast("수주에 등록되었습니다.");
     }
     setModal(null);
   }
@@ -1859,6 +2168,9 @@ function App(){
 
   function patchOrder(id,fields){
     setOrders(o=>o.map(r=>r.id===id?{...r,...fields}:r));
+  }
+  function convertToOrder(row){
+    setModal({type:"convertToOrder",row});
   }
 
   /* ── Excel 내보내기 ── */
@@ -1944,7 +2256,7 @@ function App(){
 
   // 컬럼별 필터 옵션 정의
   const colFilters={
-    customer:{label:"매출처",options:["전체",...CUSTOMERS],value:filterCustomer,set:v=>{setFilterCustomer(v);setPage(1);setOpenFilter(null);}},
+    customer:{label:"매출처",options:["전체",...customers],value:filterCustomer,set:v=>{setFilterCustomer(v);setPage(1);setOpenFilter(null);}},
     category:{label:"구분",options:["전체",...CATEGORIES],value:filterCat,set:v=>{setFilterCat(v);setPage(1);setOpenFilter(null);}},
     orderStatus:{label:"발주확인",options:["전체",...ORDER_STATUS_OPTIONS],value:filterStatus,set:v=>{setFilterStatus(v);setPage(1);setOpenFilter(null);}},
     delivery:{label:"납품현황",options:["전체","납품 전","납품중","전체완료"],value:filterStatus==="납품완료"?"전체완료":filterStatus==="납품중"?"납품중":filterStatus==="납품전"?"납품 전":"전체",
@@ -1993,6 +2305,14 @@ function App(){
     return()=>document.removeEventListener("click",handler);
   },[]);
 
+  if(!dbLoaded) return(
+    <div style={{position:"fixed",inset:0,background:"linear-gradient(135deg,#0D0F1C 0%,#1a1d35 100%)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16}}>
+      <div style={{width:48,height:48,border:"4px solid rgba(99,102,241,0.3)",borderTopColor:"#6366F1",borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/>
+      <div style={{color:"rgba(255,255,255,0.8)",fontSize:14,fontWeight:600}}>Google Sheets 데이터 불러오는 중…</div>
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}} @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}`}</style>
+    </div>
+  );
+
   return(
     <div style={S.page}>
       {/* ── 헤더 ── */}
@@ -2006,7 +2326,12 @@ function App(){
           <span style={S.logoText}>토스 발주관리</span>
         </div>
         <div className="hdr-right" style={S.headerBtns}>
-          {savedAt&&(
+          {syncing?(
+            <span style={{fontSize:11,color:"rgba(255,255,255,0.7)",display:"flex",alignItems:"center",gap:4,whiteSpace:"nowrap"}}>
+              <span style={{width:6,height:6,borderRadius:"50%",background:"#FBBF24",display:"inline-block",flexShrink:0,animation:"pulse 1s infinite"}}/>
+              <span className="btn-lbl">저장 중…</span>
+            </span>
+          ):savedAt&&(
             <span style={{fontSize:11,color:"rgba(255,255,255,0.7)",display:"flex",alignItems:"center",gap:4,whiteSpace:"nowrap"}}>
               <span style={{width:6,height:6,borderRadius:"50%",background:"#4ADE80",display:"inline-block",flexShrink:0}}/>
               <span className="btn-lbl">자동저장 {savedAt.toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit",second:"2-digit"})}</span>
@@ -2032,6 +2357,10 @@ function App(){
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><polyline points="14 2 14 8 20 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><line x1="12" y1="18" x2="12" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><polyline points="9 15 12 18 15 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
             <span className="btn-lbl">견적서 가져오기</span>
           </button>
+          <button style={S.actionBtn(false)} onClick={()=>setModal({type:"customers"})}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            <span className="btn-lbl">매출처 관리</span>
+          </button>
         </div>
       </header>
 
@@ -2045,18 +2374,27 @@ function App(){
           {key:"orders",label:"수발주 현황",
             icon:<svg className="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 12h6M9 16h4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>,
             sub:[
-              {label:"전체 발주",    action:()=>{setTab("orders");setFilterCompletion("전체");setPage(1);}},
-              {label:"납품 완료",    action:()=>{setTab("orders");setFilterCompletion("납품+계산서완료");setPage(1);}},
-              {label:"납품 대기",    action:()=>{setTab("orders");setFilterCompletion("납품대기전체");setPage(1);}},
-              {label:"발주 취소",    action:()=>{setTab("orders");setFilterCompletion("발주취소");setPage(1);}},
+              {label:"수주 목록",   action:()=>{setTab("orders");setSubTab("수주");setFilterCompletion("전체");setPage(1);}},
+              {label:"발주 목록",   action:()=>{setTab("orders");setSubTab("발주");setFilterCompletion("전체");setPage(1);}},
+              {label:"납품 완료",    action:()=>{setTab("orders");setSubTab("발주");setFilterCompletion("납품+계산서완료");setPage(1);}},
+              {label:"납품 대기",    action:()=>{setTab("orders");setSubTab("발주");setFilterCompletion("납품대기전체");setPage(1);}},
+              {label:"계산서 미발행", action:()=>{setTab("orders");setSubTab("발주");setFilterCompletion("납품완료/계산서미발행");setPage(1);}},
+              {label:"발주 취소",    action:()=>{setTab("orders");setSubTab("발주");setFilterCompletion("발주취소");setPage(1);}},
             ],
           },
           {key:"sales",label:"매출 현황",
             icon:<svg className="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M3 3v18h18M7 16l4-4 4 4 4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>,
             sub:[
-              {label:"월별",  action:()=>{setTab("sales");setSalesView("month");}},
-              {label:"주별",  action:()=>{setTab("sales");setSalesView("week");}},
-              {label:"LOB별", action:()=>{setTab("sales");setSalesView("lob");}},
+              {id:"quote",label:"견적서 기준",sub:[
+                {id:"quote-month",label:"월별",  action:()=>{setTab("sales");setSalesView("month");setSalesBasis("quote");setExpandedSalesBasis("quote");}},
+                {id:"quote-week", label:"주별",  action:()=>{setTab("sales");setSalesView("week");setSalesBasis("quote");setExpandedSalesBasis("quote");}},
+                {id:"quote-lob",  label:"LOB별", action:()=>{setTab("sales");setSalesView("lob");setSalesBasis("quote");setExpandedSalesBasis("quote");}},
+              ]},
+              {id:"invoice",label:"계산서 기준",sub:[
+                {id:"invoice-month",label:"월별",  action:()=>{setTab("sales");setSalesView("month");setSalesBasis("invoice");setExpandedSalesBasis("invoice");}},
+                {id:"invoice-week", label:"주별",  action:()=>{setTab("sales");setSalesView("week");setSalesBasis("invoice");setExpandedSalesBasis("invoice");}},
+                {id:"invoice-lob",  label:"LOB별", action:()=>{setTab("sales");setSalesView("lob");setSalesBasis("invoice");setExpandedSalesBasis("invoice");}},
+              ]},
             ],
           },
           {key:"stats",label:"통계",
@@ -2074,12 +2412,11 @@ function App(){
           const activeSubLabel=(()=>{
             if(!isActive) return null;
             if(item.key==="orders"){
-              const m={"전체":"전체 발주","납품+계산서완료":"납품 완료","납품대기전체":"납품 대기","발주취소":"발주 취소"};
+              const m={"전체":"전체 발주","납품+계산서완료":"납품 완료","납품대기전체":"납품 대기","납품완료/계산서미발행":"계산서 미발행","발주취소":"발주 취소"};
               return m[filterCompletion]||null;
             }
             if(item.key==="sales"){
-              const m={"month":"월별","week":"주별","lob":"LOB별"};
-              return m[salesView]||null;
+              return `${salesBasis}-${salesView}`;
             }
             if(item.key==="stats"){
               const m={"customer":"거래처별","category":"카테고리별","monthly":"월별 추이"};
@@ -2110,26 +2447,69 @@ function App(){
               {item.sub&&(
                 <div style={{
                   overflow:"hidden",
-                  maxHeight:isOpen?`${item.sub.length*40+8}px`:"0px",
+                  maxHeight:isOpen?`${item.sub.reduce((h,s)=>h+(s.sub?(38+s.sub.length*34+4):38),8)}px`:"0px",
                   opacity:isOpen?1:0,
                   transition:"max-height 0.28s cubic-bezier(0.4,0,0.2,1), opacity 0.2s ease",
                 }}>
                   <div style={{marginLeft:12,marginTop:2,marginBottom:4,display:"flex",flexDirection:"column",gap:1,borderLeft:"1.5px solid rgba(255,255,255,0.08)",paddingLeft:10}}>
-                    {item.sub.map(s=>(
-                      <button key={s.label}
-                        onClick={s.action}
-                        style={{
-                          border:"none",background:"transparent",cursor:"pointer",
-                          textAlign:"left",padding:"7px 10px",borderRadius:8,
-                          fontSize:12,fontWeight:activeSubLabel===s.label?600:400,
-                          color:activeSubLabel===s.label?"#A5B4FC":"rgba(255,255,255,0.75)",
-                          transition:"all 0.15s",
-                          backgroundColor:activeSubLabel===s.label?"rgba(79,70,229,0.12)":"transparent",
-                        }}
-                        onMouseEnter={e=>{ if(activeSubLabel!==s.label) e.currentTarget.style.color="#fff"; }}
-                        onMouseLeave={e=>{ if(activeSubLabel!==s.label) e.currentTarget.style.color="rgba(255,255,255,0.75)"; }}
-                      >{s.label}</button>
-                    ))}
+                    {item.sub.map((s,si)=>{
+                      // 3단계: 중간 메뉴 (sub 배열 보유)
+                      if(s.sub){
+                        const isBasisAct=salesBasis===s.id&&tab==="sales";
+                        const isBasisOpen=expandedSalesBasis===s.id;
+                        return(
+                          <div key={s.id}>
+                            <button
+                              onClick={()=>{
+                                if(isBasisAct&&isBasisOpen) return;
+                                setExpandedSalesBasis(isBasisOpen?"":(s.id));
+                                if(!isBasisAct){setSalesBasis(s.id);setTab("sales");}
+                              }}
+                              style={{
+                                border:"none",width:"100%",cursor:"pointer",
+                                textAlign:"left",padding:"7px 10px",borderRadius:8,
+                                fontSize:12,fontWeight:isBasisAct?600:400,
+                                color:isBasisAct?"#A5B4FC":"rgba(255,255,255,0.8)",
+                                backgroundColor:isBasisAct?"rgba(79,70,229,0.12)":"transparent",
+                                display:"flex",alignItems:"center",justifyContent:"space-between",
+                                transition:"all 0.15s",
+                              }}
+                            >
+                              <span>{s.label}</span>
+                              <span style={{fontSize:8,opacity:0.5}}>{isBasisOpen?"▲":"▼"}</span>
+                            </button>
+                            <div style={{overflow:"hidden",maxHeight:isBasisOpen?`${s.sub.length*34+4}px`:"0px",opacity:isBasisOpen?1:0,transition:"max-height 0.22s ease,opacity 0.18s ease"}}>
+                              <div style={{marginLeft:8,paddingLeft:8,borderLeft:"1.5px solid rgba(255,255,255,0.06)",display:"flex",flexDirection:"column",gap:1,marginBottom:2}}>
+                                {s.sub.map(leaf=>{
+                                  const isAct=activeSubLabel===leaf.id;
+                                  return(
+                                    <button key={leaf.id} onClick={leaf.action}
+                                      style={{border:"none",background:isAct?"rgba(79,70,229,0.12)":"transparent",cursor:"pointer",textAlign:"left",padding:"6px 10px",borderRadius:7,fontSize:11,fontWeight:isAct?600:400,color:isAct?"#A5B4FC":"rgba(255,255,255,0.6)",transition:"all 0.15s"}}
+                                      onMouseEnter={e=>{if(!isAct)e.currentTarget.style.color="#fff";}}
+                                      onMouseLeave={e=>{if(!isAct)e.currentTarget.style.color="rgba(255,255,255,0.6)";}}
+                                    >{leaf.label}</button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
+                      // 기존 label 타입
+                      if(s.type==="label") return(
+                        <div key={si} style={{fontSize:10,fontWeight:700,color:"rgba(255,255,255,0.28)",padding:"8px 10px 2px",letterSpacing:"0.06em",textTransform:"uppercase"}}>{s.label}</div>
+                      );
+                      // 일반 리프 아이템
+                      const sid=s.id||s.label;
+                      const isAct=activeSubLabel===sid;
+                      return(
+                        <button key={sid} onClick={s.action}
+                          style={{border:"none",background:"transparent",cursor:"pointer",textAlign:"left",padding:"7px 10px",borderRadius:8,fontSize:12,fontWeight:isAct?600:400,color:isAct?"#A5B4FC":"rgba(255,255,255,0.75)",transition:"all 0.15s",backgroundColor:isAct?"rgba(79,70,229,0.12)":"transparent"}}
+                          onMouseEnter={e=>{if(!isAct)e.currentTarget.style.color="#fff";}}
+                          onMouseLeave={e=>{if(!isAct)e.currentTarget.style.color="rgba(255,255,255,0.75)";}}
+                        >{s.label}</button>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -2143,12 +2523,15 @@ function App(){
         {/* KPI 카드 — 수발주·배정 탭에서만 표시 */}
         {tab==="orders"&&(
         <div className="kpi-row">
-          {[
+          {(subTab==="수주"?[
+            {label:"전체 수주",val:kpi.total,unit:"건",color:"#4F46E5",bar:"#4F46E5"},
+            {label:"수주 취소",val:kpi.cancelled,unit:"건",color:"#9CA3AF",bar:"#D1D5DB"},
+          ]:[
             {label:"전체 발주",val:kpi.total,unit:"건",color:"#4F46E5",bar:"#4F46E5"},
             {label:"납품 완료",val:kpi.done,unit:"건",color:"#059669",bar:"#059669"},
             {label:"납품 대기",val:kpi.pending,unit:"건",color:"#B45309",bar:"#F59E0B"},
             {label:"발주 취소",val:kpi.cancelled,unit:"건",color:"#9CA3AF",bar:"#D1D5DB"},
-          ].map(k=>(
+          ]).map(k=>(
             <div key={k.label}
               style={{...S.kpiCard,borderLeft:`3px solid ${k.bar}`}}>
               <div style={{fontSize:10,fontWeight:600,color:"#9CA3AF",marginBottom:10,letterSpacing:"0.06em",textTransform:"uppercase"}}>{k.label}</div>
@@ -2164,6 +2547,21 @@ function App(){
         {/* 수발주 현황 탭 */}
         {tab==="orders"&&(
           <>
+            {/* 수주/발주 서브탭 */}
+            <div style={{display:"flex",gap:6,marginBottom:16}}>
+              {["수주","발주"].map(t=>(
+                <button key={t} onClick={()=>{setSubTab(t);setPage(1);}} style={{padding:"8px 24px",borderRadius:10,border:"none",fontSize:14,fontWeight:700,cursor:"pointer",transition:"all 0.15s",
+                  background:subTab===t?"#4F46E5":"rgba(255,255,255,0.7)",
+                  color:subTab===t?"#fff":"#6B7280",
+                  boxShadow:subTab===t?"0 2px 12px rgba(79,70,229,0.25)":"none"}}>
+                  {t}
+                  <span style={{marginLeft:8,fontSize:12,fontWeight:600,background:subTab===t?"rgba(255,255,255,0.25)":"#EEF2FF",color:subTab===t?"#fff":"#4F46E5",borderRadius:20,padding:"2px 8px"}}>
+                    {orders.filter(o=>(o.orderType||"발주")===t).length}
+                  </span>
+                </button>
+              ))}
+              {subTab==="수주"&&<span style={{marginLeft:"auto",alignSelf:"center",fontSize:12,color:"#8B95A1"}}>수주 등록 후 확인되면 발주탭으로 이동하세요</span>}
+            </div>
             {/* 필터 바 */}
             <div style={S.filterBar}>
               <input style={{...S.searchInp,flex:1,maxWidth:360}} value={search} onChange={e=>{setSearch(e.target.value);setPage(1);}} placeholder="🔍  품목명 / MPN / 거래처 검색"/>
@@ -2228,7 +2626,8 @@ function App(){
                       const cs=getCatStyle(row.category);
                       const doc=getDocBadge(row);
                       const rowAtt=attachments[row.id]||{};
-                      const isComplete=row.orderStatus?.includes("납품 가능")&&del.type==="done"&&!!rowAtt.quote&&!!rowAtt.serial&&!!rowAtt.inspect;
+                      const hasInvoice=(row.deliveries||[]).some(d=>d.invoiceDate||d.invoiceMemo)||row.invoiceDate||row.invoice;
+                      const isComplete=row.orderStatus?.includes("납품 가능")&&del.type==="done"&&hasInvoice&&!!rowAtt.quote&&!!rowAtt.serial&&!!rowAtt.inspect;
                       return(
                         <tr key={row.id} style={{background:selectedIds.has(row.id)?"rgba(79,70,229,0.08)":isComplete?"rgba(124,58,237,0.07)":"transparent",borderLeft:selectedIds.has(row.id)?"3px solid #4F46E5":isComplete?"3px solid #7C3AED":"3px solid transparent",transition:"background 0.15s"}}>
                           <td style={{...S.td,textAlign:"center",padding:"8px 6px"}} onClick={e=>e.stopPropagation()}>
@@ -2332,10 +2731,11 @@ function App(){
                             </div>
                           </td>
                           <td style={S.td}>
-                            <div style={{display:"flex",gap:4}}>
+                            <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
                               <button style={S.iconBtn} title="상세" onClick={()=>setModal({type:"detail",row})}>🔍</button>
                               <button style={S.iconBtn} title="수정" onClick={()=>setModal({type:"edit",row})}>✏️</button>
                               <button style={S.iconBtn} title="삭제" onClick={()=>{if(confirm("삭제할까요?")) deleteOrder(row.id);}}>🗑️</button>
+                              {subTab==="수주"&&<button title="발주탭으로 전환" onClick={()=>convertToOrder(row)} style={{...S.iconBtn,background:"#EEF2FF",color:"#4F46E5",border:"1px solid #C7D2FE",fontSize:11,padding:"3px 8px",borderRadius:6,cursor:"pointer",fontWeight:700,whiteSpace:"nowrap"}}>→ 발주</button>}
                             </div>
                           </td>
                         </tr>
@@ -2364,7 +2764,7 @@ function App(){
         )}
 
         {/* 매출 현황 탭 */}
-        {tab==="sales"&&<SalesTab orders={orders} view={salesView} setView={setSalesView}/>}
+        {tab==="sales"&&<SalesTab orders={orders} view={salesView} setView={setSalesView} basis={salesBasis}/>}
 
         {/* 통계 탭 */}
         {tab==="stats"&&<StatsTab orders={orders} view={statsView}/>}
@@ -2372,11 +2772,13 @@ function App(){
       </div>{/* app-layout */}
 
       {/* ── 모달들 ── */}
-      {modal?.type==="add"&&<AddEditModal onClose={()=>setModal(null)} onSave={saveOrder}/>}
-      {modal?.type==="edit"&&<AddEditModal initial={modal.row} onClose={()=>setModal(null)} onSave={saveOrder}/>}
+      {modal?.type==="add"&&<AddEditModal onClose={()=>setModal(null)} onSave={saveOrder} customers={customers}/>}
+      {modal?.type==="edit"&&<AddEditModal initial={modal.row} onClose={()=>setModal(null)} onSave={saveOrder} customers={customers}/>}
+      {modal?.type==="convertToOrder"&&<ConvertToOrderModal row={modal.row} onClose={()=>setModal(null)} onConvert={fields=>{patchOrder(modal.row.id,{...fields,orderType:"발주"});setSubTab("발주");setModal(null);showToast(`'${modal.row.mpn}' 발주탭으로 이동되었습니다.`);}}/>}
       {modal?.type==="delivery"&&<DeliveryModal row={modal.row} onClose={()=>setModal(null)} onSave={dels=>saveDeliveries(modal.row.id,dels)}/>}
-      {modal?.type==="detail"&&<DetailModal row={modal.row} onClose={()=>setModal(null)}/>}
-      {modal?.type==="import"&&<ImportModal onClose={()=>setModal(null)} onImport={importOrders}/>}
+      {modal?.type==="detail"&&<DetailModal row={modal.row} onClose={()=>setModal(null)} attachments={attachments} onPatch={(id,patch)=>{patchOrder(id,patch);showToast("저장되었습니다.");}} onToggleAtt={toggleAtt} onOpenDelivery={(row)=>setModal({type:"delivery",row})} onOpenInvoice={(row)=>setModal({type:"editInvoice",row})}/>}
+      {modal?.type==="import"&&<ImportModal onClose={()=>setModal(null)} onImport={importOrders} existingOrders={orders} customers={customers} subTab={subTab}/>}
+      {modal?.type==="customers"&&<CustomerModal customers={customers} onClose={()=>setModal(null)} onChange={list=>{setCustomers(list);showToast("매출처 목록이 저장되었습니다.");}}/>}
       {bulkModal&&<BulkModal cnt={selectedIds.size} onClose={()=>setBulkModal(false)} onApply={applyBulk}/>}
       {modal?.type==="editInvoice"&&<InvoiceModal row={modal.row} onClose={()=>setModal(null)} onSave={(invoiceDate,invoice)=>{patchOrder(modal.row.id,{invoiceDate,invoice});setModal(null);showToast("계산서 정보가 저장되었습니다.");}} onClear={()=>{patchOrder(modal.row.id,{invoiceDate:"",invoice:""});setModal(null);showToast("계산서 정보가 초기화되었습니다.","error");}}/>}
       <ToastContainer toasts={toasts}/>
