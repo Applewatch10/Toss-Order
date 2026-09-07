@@ -1906,6 +1906,7 @@ function App(){
   const [customers, setCustomers]=useState(DEFAULT_CUSTOMERS);
   const [dbLoaded, setDbLoaded]=useState(false);
   const [syncing, setSyncing]=useState(false);
+  const isPolling=useRef(false);
   const [tab, setTab]=useState("orders");
   const [subTab, setSubTab]=useState("발주");
   const [salesView, setSalesView]=useState("month");
@@ -1950,7 +1951,9 @@ function App(){
   },[]);
 
   // 자동 저장 (Google Sheets + localStorage 백업)
-  useEffect(()=>{ if(!dbLoaded) return;
+  useEffect(()=>{
+    if(!dbLoaded) return;
+    if(isPolling.current){ isPolling.current=false; return; }
     lsSave(LS_KEYS.orders,orders); setSavedAt(new Date());
     setSyncing(true);
     const t=setTimeout(()=>{
@@ -1960,6 +1963,24 @@ function App(){
     },800);
     return()=>clearTimeout(t);
   },[orders,customers,nextId,attachments,dbLoaded]);
+
+  // 30초 자동 새로고침
+  useEffect(()=>{
+    if(!dbLoaded) return;
+    const interval=setInterval(async()=>{
+      try{
+        const data=await apiLoad();
+        if(data.orders){
+          isPolling.current=true;
+          setOrders(data.orders);
+          setNextId(data.nextId||1);
+          setCustomers(data.customers&&data.customers.length>0?data.customers:DEFAULT_CUSTOMERS);
+          setAttachments(data.attachments||{});
+        }
+      }catch(e){}
+    },30000);
+    return()=>clearInterval(interval);
+  },[dbLoaded]);
 
   /* ── 데이터 백업 ── */
   function backupData(){
