@@ -1907,6 +1907,7 @@ function App(){
   const [dbLoaded, setDbLoaded]=useState(false);
   const [syncing, setSyncing]=useState(false);
   const isPolling=useRef(false);
+  const skipNextSave=useRef(false);
   const [tab, setTab]=useState("orders");
   const [subTab, setSubTab]=useState("견적");
   const [salesView, setSalesView]=useState("month");
@@ -1927,18 +1928,20 @@ function App(){
   useEffect(()=>{
     setSyncing(true);
     apiLoad().then(data=>{
+      const localAtt=lsLoad(LS_KEYS.att,{});
       if(data.orders&&data.orders.length>0){
         setOrders(data.orders);
         setNextId(data.nextId||1);
         setCustomers(data.customers&&data.customers.length>0?data.customers:DEFAULT_CUSTOMERS);
-        setAttachments(data.attachments||{});
+        // 구글 시트 서류 데이터가 비어있으면 로컬 백업으로 복구
+        const gsAtt=data.attachments||{};
+        setAttachments(Object.keys(gsAtt).length>0?gsAtt:localAtt);
       } else {
         // 시트가 비어있으면 로컬 데이터 마이그레이션
         const lo=lsLoad(LS_KEYS.orders,INITIAL_DATA);
         const lc=lsLoad(LS_KEYS.customers,DEFAULT_CUSTOMERS);
         const ln=lsLoad(LS_KEYS.nextId,INITIAL_DATA.length+1);
-        const la=lsLoad(LS_KEYS.att,{});
-        setOrders(lo); setCustomers(lc); setNextId(ln); setAttachments(la);
+        setOrders(lo); setCustomers(lc); setNextId(ln); setAttachments(localAtt);
       }
     }).catch(()=>{
       // API 실패 시 로컬스토리지 폴백
@@ -1947,14 +1950,20 @@ function App(){
       setNextId(lsLoad(LS_KEYS.nextId,INITIAL_DATA.length+1));
       setAttachments(lsLoad(LS_KEYS.att,{}));
       showToast("⚠️ 서버 연결 실패 — 로컬 데이터로 실행 중","error");
-    }).finally(()=>{ setDbLoaded(true); setSyncing(false); });
+    }).finally(()=>{
+      skipNextSave.current=true; // 초기 로드 직후 불필요한 자동저장 방지
+      setDbLoaded(true); setSyncing(false);
+    });
   },[]);
 
   // 자동 저장 (Google Sheets + localStorage 백업)
   useEffect(()=>{
     if(!dbLoaded) return;
     if(isPolling.current){ isPolling.current=false; return; }
-    lsSave(LS_KEYS.orders,orders); setSavedAt(new Date());
+    if(skipNextSave.current){ skipNextSave.current=false; return; }
+    lsSave(LS_KEYS.orders,orders);
+    lsSave(LS_KEYS.att,attachments); // 서류 데이터 로컬 백업
+    setSavedAt(new Date());
     setSyncing(true);
     const t=setTimeout(()=>{
       apiSave(orders,customers,nextId,attachments)
