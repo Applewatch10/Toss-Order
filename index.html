@@ -1908,6 +1908,7 @@ function App(){
   const [syncing, setSyncing]=useState(false);
   const isPolling=useRef(false);
   const skipNextSave=useRef(false);
+  const isDirty=useRef(false); // 로컬 변경사항이 아직 저장 안 됐을 때 true
   const [tab, setTab]=useState("orders");
   const [subTab, setSubTab]=useState("견적");
   const [salesView, setSalesView]=useState("month");
@@ -1967,6 +1968,7 @@ function App(){
     setSyncing(true);
     const t=setTimeout(()=>{
       apiSave(orders,customers,nextId,attachments)
+        .then(()=>{ isDirty.current=false; })
         .catch(()=>showToast("⚠️ 저장 실패","error"))
         .finally(()=>setSyncing(false));
     },800);
@@ -1979,7 +1981,7 @@ function App(){
     const interval=setInterval(async()=>{
       try{
         const data=await apiLoad();
-        if(data.orders){
+        if(data.orders && !isDirty.current){
           isPolling.current=true;
           setOrders(data.orders);
           setNextId(data.nextId||1);
@@ -2115,6 +2117,7 @@ function App(){
   function resetFilters(){ setSearch("");setFilterCustomer("전체");setFilterCat("전체");setFilterStatus("전체");setFilterCompletion("전체");setFilterMonth("");setPage(1); }
 
   function saveOrder(form){
+    isDirty.current=true;
     if(form.id){
       setOrders(o=>o.map(r=>r.id===form.id?{...form}:r));
       showToast("발주가 수정되었습니다.");
@@ -2126,6 +2129,7 @@ function App(){
     setModal(null);
   }
   function deleteOrder(id){
+    isDirty.current=true;
     setOrders(o=>o.filter(r=>r.id!==id));
     setSelectedIds(s=>{const n=new Set(s);n.delete(id);return n;});
     setModal(null);
@@ -2135,12 +2139,14 @@ function App(){
     const ids=Array.from(selectedIds);
     if(!ids.length) return;
     if(!confirm(`선택한 ${ids.length}건을 삭제할까요?`)) return;
+    isDirty.current=true;
     setOrders(o=>o.filter(r=>!selectedIds.has(r.id)));
     setSelectedIds(new Set());
     showToast(`${ids.length}건이 삭제되었습니다.`,"error");
   }
 
   function applyBulk({orderStatus, attKeys}){
+    isDirty.current=true;
     const ids=Array.from(selectedIds);
     if(orderStatus!==undefined){
       setOrders(o=>o.map(r=>selectedIds.has(r.id)?{...r,orderStatus}:r));
@@ -2163,22 +2169,26 @@ function App(){
   }
   function deleteAll(){
     if(!confirm(`수발주 현황 전체 ${filtered.length}건을 삭제할까요?\n이 작업은 되돌릴 수 없습니다.`)) return;
+    isDirty.current=true;
     const filteredIds=new Set(filtered.map(o=>o.id));
     setOrders(o=>o.filter(r=>!filteredIds.has(r.id)));
     setSelectedIds(new Set());
     showToast(`전체 ${filteredIds.size}건이 삭제되었습니다.`,"error");
   }
-  function saveDeliveries(id,dels){ setOrders(o=>o.map(r=>r.id===id?{...r,deliveries:dels}:r)); setModal(null); showToast("납품 정보가 저장되었습니다."); }
+  function saveDeliveries(id,dels){ isDirty.current=true; setOrders(o=>o.map(r=>r.id===id?{...r,deliveries:dels}:r)); setModal(null); showToast("납품 정보가 저장되었습니다."); }
   function toggleAtt(id, key){
+    isDirty.current=true;
     const oldAtt=attachments[id]||{};
     const newVal=!oldAtt[key];
     setAttachments(a=>({...a,[id]:{...oldAtt,[key]:newVal}}));
   }
   function importOrders(items, quoteFile){
+    isDirty.current=true;
     const startId=nextId;
     const newOrders=items.map((item,i)=>({...item,id:startId+i,deliveries:[]}));
     setOrders(o=>[...o,...newOrders]);
     setNextId(n=>n+items.length);
+    setPage(1); setSearch(""); // 가져온 항목이 바로 보이도록 필터/페이지 초기화
     // 견적 자동 체크 처리
     if(quoteFile){
       const newAtts={};
@@ -2197,6 +2207,7 @@ function App(){
   }
 
   function patchOrder(id,fields){
+    isDirty.current=true;
     setOrders(o=>o.map(r=>r.id===id?{...r,...fields}:r));
   }
   function convertToSuju(row){
@@ -2808,10 +2819,10 @@ function App(){
         )}
 
         {/* 매출 현황 탭 */}
-        {tab==="sales"&&<SalesTab orders={orders} view={salesView} setView={setSalesView} basis={salesBasis}/>}
+        <div style={{display:tab==="sales"?"block":"none"}}><SalesTab orders={orders} view={salesView} setView={setSalesView} basis={salesBasis}/></div>
 
         {/* 통계 탭 */}
-        {tab==="stats"&&<StatsTab orders={orders} view={statsView}/>}
+        <div style={{display:tab==="stats"?"block":"none"}}><StatsTab orders={orders} view={statsView}/></div>
       </main>
       </div>{/* app-layout */}
 
