@@ -866,12 +866,8 @@ function ImportModal({onClose, onImport, existingOrders, customers=DEFAULT_CUSTO
   function buildOrders(){
     const baseFields={customer:mapping.customer||customers[0],quoteDate:mapping.quoteDate||new Date().toISOString().slice(0,10),orderDate:mapping.orderDate,orderDateMemo:mapping.orderDateMemo||"",orderStatus:mapping.orderStatus};
     const itemsWithCat=parsed.items.map((it,i)=>({...it,category:itemCategories[i]||"Mac"}));
-    const groups={};
-    itemsWithCat.forEach(it=>{ const cat=it.category; if(!groups[cat]) groups[cat]=[]; groups[cat].push(it); });
-    return Object.entries(groups).map(([cat,items])=>{
-      const [first,...rest]=items;
-      return{...emptyForm(customers),...first,...baseFields,category:cat,subItems:rest.map((si,i)=>({id:100+i,mpn:si.mpn||"",itemName:si.itemName||"",qty:si.qty||1}))};
-    });
+    const [first,...rest]=itemsWithCat;
+    return[{...emptyForm(customers),...first,...baseFields,category:first.category,subItems:rest.map((si,i)=>({id:100+i,mpn:si.mpn||"",itemName:si.itemName||"",qty:si.qty||1}))}];
   }
   function doImport(){
     if(!parsed?.items?.length){alert("가져올 항목이 없습니다."); return;}
