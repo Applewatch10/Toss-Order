@@ -1178,7 +1178,7 @@ function StatsTab({orders,view}){
   const max=data.reduce((m,d)=>Math.max(m,d[1]),0)||1;
   const total=data.reduce((s,d)=>s+d[1],0);
 
-  const labelMap={"customer":"거래처별","category":"카테고리별","monthly":"월별 추이"};
+  const labelMap={"customer":"거래처별","category":"LOB별","monthly":"월별 추이"};
 
   return(
     <div style={{padding:"0 0 32px"}}>
@@ -2717,7 +2717,7 @@ function App(){
             icon:<svg className="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 20h16M4 20V10m0 10h4V10H4v10zm8 0V4m-4 16h8V4h-4v16zm4 0h4v-6h-4v6z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>,
             sub:[
               {label:"거래처별", action:()=>{setTab("stats");setStatsView("customer");}},
-              {label:"카테고리별",action:()=>{setTab("stats");setStatsView("category");}},
+              {label:"LOB별",action:()=>{setTab("stats");setStatsView("category");}},
               {label:"월별 추이", action:()=>{setTab("stats");setStatsView("monthly");}},
             ],
           },
@@ -2735,7 +2735,7 @@ function App(){
               return `${salesBasis}-${salesView}`;
             }
             if(item.key==="stats"){
-              const m={"customer":"거래처별","category":"카테고리별","monthly":"월별 추이"};
+              const m={"customer":"거래처별","category":"LOB별","monthly":"월별 추이"};
               return m[statsView]||null;
             }
             return null;
