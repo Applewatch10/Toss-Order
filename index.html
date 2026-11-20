@@ -699,9 +699,61 @@ function AddEditModal({initial, onClose, onSave, customers=DEFAULT_CUSTOMERS, co
 }
 
 /* ══════════════ 상세 모달 ══════════════ */
-function DetailModal({row, onClose, attachments={}, onPatch, onToggleAtt, onOpenDelivery, onOpenInvoice}){
+function DetailModal({row, onClose, attachments={}, onPatch, onToggleAtt, onOpenDelivery, onOpenInvoice, onSplit}){
   const [localStatus,setLocalStatus]=useState(row.orderStatus||"");
   const [localAtt,setLocalAtt]=useState(attachments[row.id]||{});
+  const [reuploadPreview,setReuploadPreview]=useState(null);
+  const [splitMode,setSplitMode]=useState(false);
+  const [splitSel,setSplitSel]=useState(new Set()); // 새 발주건으로 보낼 항목 인덱스
+  const reuploadRef=useRef();
+
+  // 전체 품목 플랫 리스트 (인덱스 0 = 메인)
+  const allItems=[{mpn:row.mpn,itemName:row.itemName,qty:row.qty||0},...(row.subItems||[]).map(si=>({mpn:si.mpn,itemName:si.itemName,qty:+si.qty||0}))];
+
+  function toggleSplit(i){setSplitSel(s=>{const n=new Set(s);n.has(i)?n.delete(i):n.add(i);return n;});}
+
+  function applySplit(){
+    if(splitSel.size===0){alert("새 발주건으로 보낼 항목을 선택하세요.");return;}
+    if(splitSel.size===allItems.length){alert("최소 1개 항목은 원래 발주건에 남아야 해요.");return;}
+    const moveItems=allItems.filter((_,i)=>splitSel.has(i));
+    const keepItems=allItems.filter((_,i)=>!splitSel.has(i));
+    const [mFirst,...mRest]=moveItems;
+    const [kFirst,...kRest]=keepItems;
+    // 원래 발주건 업데이트
+    onPatch&&onPatch(row.id,{mpn:kFirst.mpn,itemName:kFirst.itemName,qty:kFirst.qty,subItems:kRest.map((si,i)=>({id:100+i,mpn:si.mpn,itemName:si.itemName,qty:si.qty})),_highlight:true});
+    // 새 발주건 생성
+    onSplit&&onSplit({mpn:mFirst.mpn,itemName:mFirst.itemName,qty:mFirst.qty,subItems:mRest.map((si,i)=>({id:100+i,mpn:si.mpn,itemName:si.itemName,qty:si.qty})),customer:row.customer,quoteDate:row.quoteDate,orderDate:row.orderDate,orderDateMemo:row.orderDateMemo||"",category:row.category,orderStatus:row.orderStatus,orderType:row.orderType||"견적",notes:row.notes||"",deliveries:[],invoiceDate:"",invoice:"",_highlight:true});
+    onClose();
+  }
+
+  function handleReuploadFile(file){
+    if(!file) return;
+    const reader=new FileReader();
+    reader.onload=e=>{
+      try{
+        const wb=XLSX.read(e.target.result,{type:"array"});
+        const ws=wb.Sheets[wb.SheetNames[0]];
+        const rawRows=XLSX.utils.sheet_to_json(ws,{header:1,defval:""});
+        const result=parseQuotationExcel(rawRows);
+        if(!result.items||result.items.length===0){alert("품목을 찾을 수 없어요."); return;}
+        setReuploadPreview({items:result.items});
+      }catch(err){alert("파일 파싱 오류: "+err.message);}
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  function applyReupload(){
+    if(!reuploadPreview) return;
+    const [first,...rest]=reuploadPreview.items;
+    onPatch&&onPatch(row.id,{
+      mpn:first.mpn||row.mpn,
+      itemName:first.itemName||row.itemName,
+      qty:first.qty||row.qty,
+      subItems:rest.map((si,i)=>({id:100+i,mpn:si.mpn||"",itemName:si.itemName||"",qty:si.qty||1})),
+      _highlight:true,
+    });
+    setReuploadPreview(null);
+  }
   const del=calcDelivery(row);
   const subItems=row.subItems||[];
   const totalQty=(row.qty||0)+subItems.reduce((s,i)=>s+(+i.qty||0),0);
@@ -815,6 +867,66 @@ function DetailModal({row, onClose, attachments={}, onPatch, onToggleAtt, onOpen
               <button onClick={()=>{onOpenDelivery&&onOpenDelivery(row);onClose();}} style={{flex:1,padding:"9px",borderRadius:10,border:"1.5px solid #C7D2FE",background:"#EEF2FF",color:"#4F46E5",fontSize:13,fontWeight:700,cursor:"pointer"}}>📦 납품 관리</button>
               <button onClick={()=>{onOpenInvoice&&onOpenInvoice(row);onClose();}} style={{flex:1,padding:"9px",borderRadius:10,border:"1.5px solid #C7D2FE",background:"#EEF2FF",color:"#4F46E5",fontSize:13,fontWeight:700,cursor:"pointer"}}>🧾 계산서</button>
             </div>
+            {/* 발주건 분리 */}
+            {allItems.length>1&&(
+              <div>
+                {!splitMode?(
+                  <button onClick={()=>{setSplitMode(true);setSplitSel(new Set());}} style={{width:"100%",padding:"9px",borderRadius:10,border:"1.5px dashed #E5E8EB",background:"#F9FAFB",color:"#6B7280",fontSize:13,fontWeight:600,cursor:"pointer"}}>
+                    ✂️ 발주건 분리
+                  </button>
+                ):(
+                  <div style={{background:"#F0F4FF",border:"1.5px solid #C7D2FE",borderRadius:12,padding:14}}>
+                    <div style={{fontSize:12,fontWeight:700,color:"#4F46E5",marginBottom:8}}>✂️ 새 발주건으로 보낼 항목 선택</div>
+                    <div style={{border:"1px solid #C7D2FE",borderRadius:8,overflow:"hidden",marginBottom:10}}>
+                      {allItems.map((it,i)=>(
+                        <div key={i} onClick={()=>toggleSplit(i)}
+                          style={{display:"flex",alignItems:"center",gap:10,padding:"9px 12px",borderTop:i>0?"1px solid #E5E8EB":"none",background:splitSel.has(i)?"#EEF2FF":"#fff",cursor:"pointer"}}>
+                          <input type="checkbox" readOnly checked={splitSel.has(i)} style={{accentColor:"#4F46E5",width:14,height:14,cursor:"pointer"}}/>
+                          <span style={{fontFamily:"monospace",fontSize:10,color:"#6366F1",width:100,flexShrink:0}}>{it.mpn}</span>
+                          <span style={{fontSize:12,color:"#191F28",flex:1}}>{it.itemName}</span>
+                          <span style={{fontSize:12,fontWeight:700,color:"#374151",flexShrink:0}}>{it.qty}개</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{fontSize:11,color:"#8B95A1",marginBottom:10}}>선택한 항목 → 새 발주건 · 나머지 → 현재 발주건 유지<br/>거래처·날짜·상태는 동일하게 복사돼요</div>
+                    <div style={{display:"flex",gap:8}}>
+                      <button onClick={applySplit} style={{flex:1,padding:"8px",borderRadius:8,border:"none",background:"#4F46E5",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer"}}>✅ 분리 적용</button>
+                      <button onClick={()=>setSplitMode(false)} style={{flex:1,padding:"8px",borderRadius:8,border:"1.5px solid #E5E8EB",background:"#fff",color:"#8B95A1",fontSize:13,fontWeight:600,cursor:"pointer"}}>취소</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            {/* 견적서 재업로드 */}
+            <div>
+              <input ref={reuploadRef} type="file" accept=".xlsx,.xls" style={{display:"none"}}
+                onChange={e=>{if(e.target.files[0])handleReuploadFile(e.target.files[0]);e.target.value="";}}/>
+              <button onClick={()=>reuploadRef.current.click()} style={{width:"100%",padding:"9px",borderRadius:10,border:"1.5px dashed #C7D2FE",background:"#F5F7FF",color:"#6366F1",fontSize:13,fontWeight:600,cursor:"pointer"}}>
+                🔄 견적서 재업로드 (품목 수정)
+              </button>
+            </div>
+            {/* 재업로드 미리보기 */}
+            {reuploadPreview&&(
+              <div style={{background:"#FFF8E6",border:"1.5px solid #F59E0B",borderRadius:12,padding:14}}>
+                <div style={{fontSize:12,fontWeight:700,color:"#B45309",marginBottom:10}}>⚠️ 아래 품목으로 교체됩니다. 거래처·날짜·납품·서류는 유지돼요.</div>
+                <div style={{border:"1px solid #FDE68A",borderRadius:8,overflow:"hidden",marginBottom:12}}>
+                  <div style={{display:"grid",gridTemplateColumns:"120px 1fr 50px",background:"#FEF3C7",padding:"6px 10px",fontSize:11,fontWeight:700,color:"#92400E"}}>
+                    <span>MPN</span><span>품목명</span><span style={{textAlign:"right"}}>수량</span>
+                  </div>
+                  {reuploadPreview.items.map((it,i)=>(
+                    <div key={i} style={{display:"grid",gridTemplateColumns:"120px 1fr 50px",padding:"8px 10px",fontSize:11,borderTop:"1px solid #FDE68A",background:i%2===0?"#fff":"#FFFBEB"}}>
+                      <span style={{fontFamily:"monospace",color:"#4F46E5",fontSize:10}}>{it.mpn}</span>
+                      <span style={{color:"#191F28"}}>{it.itemName}</span>
+                      <span style={{textAlign:"right",fontWeight:700}}>{it.qty}</span>
+                    </div>
+                  ))}
+                </div>
+                <div style={{display:"flex",gap:8}}>
+                  <button onClick={applyReupload} style={{flex:1,padding:"8px",borderRadius:8,border:"none",background:"#4F46E5",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer"}}>✅ 적용</button>
+                  <button onClick={()=>setReuploadPreview(null)} style={{flex:1,padding:"8px",borderRadius:8,border:"1.5px solid #E5E8EB",background:"#fff",color:"#8B95A1",fontSize:13,fontWeight:600,cursor:"pointer"}}>취소</button>
+                </div>
+              </div>
+            )}
           </div>
 
           <div style={{paddingTop:16,textAlign:"right"}}>
@@ -1277,6 +1389,7 @@ function SalesTab({orders,view,setView,basis="quote"}){
       let key;
       if(view==="month") key=String(o[dateField]||"").slice(0,7)||"날짜없음";
       else if(view==="week") key=getISOWeekLabel(o[dateField])||"날짜없음";
+      else if(view==="customer") key=o.customer||"미지정";
       else key=o.category||"기타";
       if(!map[key]) map[key]={key,cnt:0,qty:0,rev:0,gp:0};
       map[key].cnt++; map[key].qty+=o._qty; map[key].rev+=o._rev; map[key].gp+=o._gp;
@@ -1295,6 +1408,7 @@ function SalesTab({orders,view,setView,basis="quote"}){
         if(!map[lob]) map[lob]={key:lob,cnt:0,qty:0,rev:0,gp:0};
       });
     }
+    if(view==="customer") return Object.values(map).sort((a,b)=>b.rev-a.rev);
     return Object.values(map).sort((a,b)=>a.key.localeCompare(b.key));
   },[filtered,view,yearFilter]);
 
@@ -1356,7 +1470,7 @@ function SalesTab({orders,view,setView,basis="quote"}){
     return n.toLocaleString()+"원";
   };
   const lobs=["전체","Mac","iPad","iPhone","ACC","DISP"];
-  const viewBtns=[{k:"month",l:"월별"},{k:"week",l:"주별"},{k:"lob",l:"LOB별"}];
+  const viewBtns=[{k:"month",l:"월별"},{k:"week",l:"주별"},{k:"lob",l:"LOB별"},{k:"customer",l:"거래처별"}];
   const S={card:{background:"#fff",borderRadius:16,padding:"16px 18px",boxShadow:"0 2px 8px rgba(79,70,229,0.06)",border:"1.5px solid #E5E8EB"},
     th:{padding:"10px 12px",fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.9)",textAlign:"left",whiteSpace:"nowrap"},
     td:{padding:"10px 12px",fontSize:12,color:"#191F28",borderBottom:"1px solid #F5F7FA"},};
@@ -1384,7 +1498,7 @@ function SalesTab({orders,view,setView,basis="quote"}){
       </div>
 
       {/* 기간 필터 — 월별/주별 */}
-      {view!=="lob"&&(
+      {view!=="lob"&&view!=="customer"&&(
         <div style={{background:"#fff",borderRadius:12,padding:"12px 16px",marginBottom:16,border:"1.5px solid #E5E8EB",display:"flex",gap:12,flexWrap:"wrap",alignItems:"center"}}>
           <div style={{display:"flex",gap:5,alignItems:"center",flexWrap:"wrap"}}>
             <span style={{fontSize:11,fontWeight:700,color:"#8B95A1",marginRight:4}}>연도</span>
@@ -1421,7 +1535,7 @@ function SalesTab({orders,view,setView,basis="quote"}){
       {/* 차트 */}
       <div style={{background:"rgba(255,255,255,0.88)",backdropFilter:"blur(20px) saturate(160%)",WebkitBackdropFilter:"blur(20px) saturate(160%)",borderRadius:16,border:"1px solid rgba(255,255,255,0.55)",boxShadow:"0 4px 24px rgba(0,0,0,0.06)",padding:"24px 24px 16px",marginBottom:16}}>
         <div style={{fontSize:13,fontWeight:700,color:"#374151",marginBottom:16}}>
-          {{month:"월별",week:"주별",lob:"LOB별"}[view]} 매출 현황 <span style={{fontSize:11,fontWeight:500,color:"#9CA3AF",marginLeft:6}}>{basis==="invoice"?"계산서 기준":"견적서 기준"}</span>
+          {{month:"월별",week:"주별",lob:"LOB별",customer:"거래처별"}[view]} 매출 현황 <span style={{fontSize:11,fontWeight:500,color:"#9CA3AF",marginLeft:6}}>{basis==="invoice"?"계산서 기준":"견적서 기준"}</span>
         </div>
         <div style={{height:320,position:"relative"}}>
           <canvas ref={chartRef}/>
@@ -1434,7 +1548,7 @@ function SalesTab({orders,view,setView,basis="quote"}){
           <table style={{width:"100%",borderCollapse:"collapse",minWidth:600}}>
             <thead style={{background:"#111218"}}>
               <tr>
-                <th style={S.th}>{view==="month"?"월":{week:"주",lob:"LOB"}[view]}</th>
+                <th style={S.th}>{view==="month"?"월":{week:"주",lob:"LOB",customer:"거래처"}[view]||"월"}</th>
                 <th style={{...S.th,textAlign:"right"}}>건수</th>
                 <th style={{...S.th,textAlign:"right"}}>대수</th>
                 <th style={{...S.th,textAlign:"right"}}>매출금액(공급단가)</th>
@@ -2384,7 +2498,7 @@ function App(){
       setOrders(o=>o.map(r=>r.id===form.id?{...form}:r));
       showToast("발주가 수정되었습니다.");
     } else {
-      setOrders(o=>[...o,{...form,id:nextId,deliveries:form.deliveries||[],orderType:form.orderType||"견적"}]);
+      setOrders(o=>[...o,{...form,id:nextId,deliveries:form.deliveries||[],orderType:form.orderType||"견적",_highlight:true}]);
       setNextId(n=>n+1);
       showToast(`${form.orderType||"견적"}에 등록되었습니다.`);
     }
@@ -2447,7 +2561,7 @@ function App(){
   function importOrders(items, quoteFile){
     isDirty.current=true;
     const startId=nextId;
-    const newOrders=items.map((item,i)=>({...item,id:startId+i,deliveries:[]}));
+    const newOrders=items.map((item,i)=>({...item,id:startId+i,deliveries:[],_highlight:true}));
     setOrders(o=>[...o,...newOrders]);
     setNextId(n=>n+items.length);
     setPage(1); setSearch(""); // 가져온 항목이 바로 보이도록 필터/페이지 초기화
@@ -2471,6 +2585,12 @@ function App(){
   function patchOrder(id,fields){
     isDirty.current=true;
     setOrders(o=>o.map(r=>r.id===id?{...r,...fields}:r));
+  }
+  function splitOrder(newOrderData){
+    isDirty.current=true;
+    setOrders(o=>[...o,{...emptyForm(customers),...newOrderData,id:nextId,_highlight:true}]);
+    setNextId(n=>n+1);
+    showToast("발주건이 분리되어 새로 등록되었습니다.");
   }
   function convertToSuju(row){
     if(window.confirm(`'${row.mpn}'\n수주탭으로 이동할까요?`)){
@@ -2704,12 +2824,14 @@ function App(){
               {id:"quote",label:"견적서 기준",sub:[
                 {id:"quote-month",label:"월별",  action:()=>{setTab("sales");setSalesView("month");setSalesBasis("quote");setExpandedSalesBasis("quote");}},
                 {id:"quote-week", label:"주별",  action:()=>{setTab("sales");setSalesView("week");setSalesBasis("quote");setExpandedSalesBasis("quote");}},
-                {id:"quote-lob",  label:"LOB별", action:()=>{setTab("sales");setSalesView("lob");setSalesBasis("quote");setExpandedSalesBasis("quote");}},
+                {id:"quote-lob",      label:"LOB별",    action:()=>{setTab("sales");setSalesView("lob");setSalesBasis("quote");setExpandedSalesBasis("quote");}},
+                {id:"quote-customer", label:"거래처별", action:()=>{setTab("sales");setSalesView("customer");setSalesBasis("quote");setExpandedSalesBasis("quote");}},
               ]},
               {id:"invoice",label:"계산서 기준",sub:[
-                {id:"invoice-month",label:"월별",  action:()=>{setTab("sales");setSalesView("month");setSalesBasis("invoice");setExpandedSalesBasis("invoice");}},
-                {id:"invoice-week", label:"주별",  action:()=>{setTab("sales");setSalesView("week");setSalesBasis("invoice");setExpandedSalesBasis("invoice");}},
-                {id:"invoice-lob",  label:"LOB별", action:()=>{setTab("sales");setSalesView("lob");setSalesBasis("invoice");setExpandedSalesBasis("invoice");}},
+                {id:"invoice-month",   label:"월별",    action:()=>{setTab("sales");setSalesView("month");setSalesBasis("invoice");setExpandedSalesBasis("invoice");}},
+                {id:"invoice-week",    label:"주별",    action:()=>{setTab("sales");setSalesView("week");setSalesBasis("invoice");setExpandedSalesBasis("invoice");}},
+                {id:"invoice-lob",     label:"LOB별",   action:()=>{setTab("sales");setSalesView("lob");setSalesBasis("invoice");setExpandedSalesBasis("invoice");}},
+                {id:"invoice-customer",label:"거래처별",action:()=>{setTab("sales");setSalesView("customer");setSalesBasis("invoice");setExpandedSalesBasis("invoice");}},
               ]},
             ],
           },
@@ -2953,8 +3075,9 @@ function App(){
                       const rowAtt=attachments[row.id]||{};
                       const hasInvoice=(row.deliveries||[]).some(d=>d.invoiceDate||d.invoiceMemo)||row.invoiceDate||row.invoice;
                       const isComplete=row.orderStatus?.includes("납품 가능")&&del.type==="done"&&hasInvoice&&!!rowAtt.quote&&!!rowAtt.serial&&!!rowAtt.inspect;
+                      const isNew=!!row._highlight;
                       return(
-                        <tr key={row.id} style={{background:selectedIds.has(row.id)?"rgba(79,70,229,0.08)":isComplete?"rgba(124,58,237,0.07)":"transparent",borderLeft:selectedIds.has(row.id)?"3px solid #4F46E5":isComplete?"3px solid #7C3AED":"3px solid transparent",transition:"background 0.15s"}}>
+                        <tr key={row.id} onClick={isNew?()=>patchOrder(row.id,{_highlight:false}):undefined} style={{background:selectedIds.has(row.id)?"rgba(79,70,229,0.08)":isNew?"rgba(16,185,129,0.07)":isComplete?"rgba(124,58,237,0.07)":"transparent",borderLeft:selectedIds.has(row.id)?"3px solid #4F46E5":isNew?"3px solid #10B981":isComplete?"3px solid #7C3AED":"3px solid transparent",transition:"background 0.15s"}}>
                           <td style={{...S.td,textAlign:"center",padding:"8px 6px"}} onClick={e=>e.stopPropagation()}>
                             <input type="checkbox"
                               checked={selectedIds.has(row.id)}
@@ -2985,7 +3108,12 @@ function App(){
                             <span style={{fontSize:11,fontWeight:700,color:"#4F46E5",fontFamily:"monospace",textDecoration:"none"}}>{row.mpn}</span>
                             {(row.subItems&&row.subItems.length>0)&&<span style={{fontSize:10,background:"#EEF2FF",color:"#4F46E5",borderRadius:6,padding:"1px 6px",marginLeft:4,fontWeight:600}}>외 {row.subItems.length}종</span>}
                           </td>
-                          <td style={{...S.td,maxWidth:200,cursor:"pointer"}} onClick={()=>setModal({type:"detail",row})}><span style={{fontSize:11,display:"block",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",textDecoration:"none"}} title={row.itemName}>{row.itemName}</span></td>
+                          <td style={{...S.td,maxWidth:200,cursor:"pointer"}} onClick={()=>setModal({type:"detail",row})}>
+                            <div style={{display:"flex",alignItems:"center",gap:4,overflow:"hidden"}}>
+                              {isNew&&<span style={{flexShrink:0,background:"#10B981",color:"#fff",fontSize:9,fontWeight:800,borderRadius:4,padding:"1px 5px",letterSpacing:"0.03em"}}>NEW</span>}
+                              <span style={{fontSize:11,display:"block",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={row.itemName}>{row.itemName}</span>
+                            </div>
+                          </td>
                           <td style={{...S.td,textAlign:"right",fontWeight:700}}>{((row.qty||0)+(row.subItems||[]).reduce((s,i)=>s+(+i.qty||0),0)).toLocaleString()}</td>
                           <td style={S.td}>
                             <span style={{...S.pill(osSt.bg,osSt.color),fontSize:10,maxWidth:90,overflow:"hidden",textOverflow:"ellipsis",display:"inline-block",cursor:"pointer"}}
@@ -3103,7 +3231,7 @@ function App(){
       {modal?.type==="edit"&&<AddEditModal initial={modal.row} onClose={()=>setModal(null)} onSave={saveOrder} customers={customers}/>}
       {modal?.type==="convertToBalju"&&<ConvertToOrderModal row={modal.row} onClose={()=>setModal(null)} onConvert={fields=>{patchOrder(modal.row.id,{...fields,orderType:"발주"});setSubTab("발주");setModal(null);showToast(`'${modal.row.mpn}' 발주탭으로 이동되었습니다.`);}}/>}
       {modal?.type==="delivery"&&<DeliveryModal row={modal.row} onClose={()=>setModal(null)} onSave={dels=>saveDeliveries(modal.row.id,dels)}/>}
-      {modal?.type==="detail"&&<DetailModal row={modal.row} onClose={()=>setModal(null)} attachments={attachments} onPatch={(id,patch)=>{patchOrder(id,patch);showToast("저장되었습니다.");}} onToggleAtt={toggleAtt} onOpenDelivery={(row)=>setModal({type:"delivery",row})} onOpenInvoice={(row)=>setModal({type:"editInvoice",row})}/>}
+      {modal?.type==="detail"&&<DetailModal row={modal.row} onClose={()=>setModal(null)} attachments={attachments} onPatch={(id,patch)=>{patchOrder(id,patch);showToast("저장되었습니다.");}} onToggleAtt={toggleAtt} onOpenDelivery={(row)=>setModal({type:"delivery",row})} onOpenInvoice={(row)=>setModal({type:"editInvoice",row})} onSplit={splitOrder}/>}
       {modal?.type==="import"&&<ImportModal onClose={()=>setModal(null)} onImport={importOrders} existingOrders={orders} customers={customers} subTab={subTab}/>}
       {modal?.type==="customers"&&<CustomerModal customers={customers} onClose={()=>setModal(null)} onChange={list=>{setCustomers(list);showToast("매출처 목록이 저장되었습니다.");}}/>}
       {bulkModal&&<BulkModal cnt={selectedIds.size} onClose={()=>setBulkModal(false)} onApply={applyBulk}/>}
