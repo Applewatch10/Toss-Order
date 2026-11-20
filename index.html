@@ -753,6 +753,7 @@ function DetailModal({row, onClose, attachments={}, onPatch, onToggleAtt, onOpen
       _highlight:true,
     });
     setReuploadPreview(null);
+    onClose&&onClose();
   }
   const del=calcDelivery(row);
   const subItems=row.subItems||[];
@@ -3076,8 +3077,9 @@ function App(){
                       const hasInvoice=(row.deliveries||[]).some(d=>d.invoiceDate||d.invoiceMemo)||row.invoiceDate||row.invoice;
                       const isComplete=row.orderStatus?.includes("납품 가능")&&del.type==="done"&&hasInvoice&&!!rowAtt.quote&&!!rowAtt.serial&&!!rowAtt.inspect;
                       const isNew=!!row._highlight;
+                      const isCancelled=row.orderStatus==="발주 취소";
                       return(
-                        <tr key={row.id} onClick={isNew?()=>patchOrder(row.id,{_highlight:false}):undefined} style={{background:selectedIds.has(row.id)?"rgba(79,70,229,0.08)":isNew?"rgba(16,185,129,0.07)":isComplete?"rgba(124,58,237,0.07)":"transparent",borderLeft:selectedIds.has(row.id)?"3px solid #4F46E5":isNew?"3px solid #10B981":isComplete?"3px solid #7C3AED":"3px solid transparent",transition:"background 0.15s"}}>
+                        <tr key={row.id} onClick={isNew?()=>patchOrder(row.id,{_highlight:false}):undefined} style={{background:selectedIds.has(row.id)?"rgba(79,70,229,0.08)":isNew?"rgba(16,185,129,0.07)":isCancelled?"rgba(239,68,68,0.25)":isComplete?"rgba(124,58,237,0.07)":"transparent",borderLeft:selectedIds.has(row.id)?"3px solid #4F46E5":isNew?"3px solid #10B981":isCancelled?"3px solid #EF4444":isComplete?"3px solid #7C3AED":"3px solid transparent",transition:"background 0.15s"}}>
                           <td style={{...S.td,textAlign:"center",padding:"8px 6px"}} onClick={e=>e.stopPropagation()}>
                             <input type="checkbox"
                               checked={selectedIds.has(row.id)}
